@@ -1,471 +1,368 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+import React, { useState } from "react"
+import { addPropertyControls, ControlType } from "framer"
 
-// Comprehensive theme fingerprints database
-const themeFingerprints = {
-    // Shopify Official Themes
-    'Dawn': {
-        patterns: ['color-scheme-1', 'color-scheme-2', 'predictive-search', '"Dawn"', 'cart-drawer', 'details-disclosure']
-    },
-    'Impact': {
-        patterns: ['product-card--blends', 'section-stack', '"Impact"', 'cart-drawer', 'reveal-items', 'prose']
-    },
-    'Debut': {
-        patterns: ['site-header', 'product-single', '"Debut"', 'grid-product', 'btn--secondary']
-    },
-    'Brooklyn': {
-        patterns: ['brooklyn', 'hero-banner', '"Brooklyn"', 'site-nav', 'product-form']
-    },
-    'Minimal': {
-        patterns: ['minimal', '"Minimal"', 'site-footer', 'shopify-section-header']
-    },
-    'Supply': {
-        patterns: ['supply', 'collection-hero', 'featured-collection', '"Supply"']
-    },
-    'Narrative': {
-        patterns: ['narrative', 'hero-content', 'featured-blog', '"Narrative"']
-    },
-    'Venture': {
-        patterns: ['venture', 'collection-grid', '"Venture"']
-    },
-    'Simple': {
-        patterns: ['simple', 'header-bar', '"Simple"']
-    },
-    'Boundless': {
-        patterns: ['boundless', 'collection-filters', '"Boundless"']
-    },
-    'Express': {
-        patterns: ['express', 'slideshow-express', '"Express"']
-    },
-    'Refresh': {
-        patterns: ['refresh', 'product-single-refresh', '"Refresh"']
-    },
-    'Colors': {
-        patterns: ['colors-theme', 'colors__', '"Colors"']
-    },
-    'Sense': {
-        patterns: ['sense-theme', 'sense__', '"Sense"']
-    },
-    'Taste': {
-        patterns: ['taste-theme', 'taste__', '"Taste"']
-    },
-    'Studio': {
-        patterns: ['studio-theme', 'studio__', '"Studio"']
-    },
-    'Craft': {
-        patterns: ['craft-theme', 'craft__', '"Craft"']
-    },
+export default function ShopifyThemeDetector(props) {
+    const [url, setUrl] = useState("")
+    const [loading, setLoading] = useState(false)
+    const [result, setResult] = useState(null)
+    const [error, setError] = useState(null)
 
-    // Premium Themes
-    'Prestige': {
-        patterns: ['ProductItem__', 'prestige--v4', '"Prestige"', 'Icon--', 'ProductMeta__', 'maestrooo']
-    },
-    'Kalles': {
-        patterns: ['kalles', 'kalles-theme', 'kt-', 'kt_', '"Kalles"', 'kalles-header']
-    },
-    'Wokiee': {
-        patterns: ['wokiee', 'wokiee-theme', 'wk-', '"Wokiee"', 'wokiee-header']
-    },
-    'Blockshop': {
-        patterns: ['blockshop', 'blockshop-theme', 'bs-', '"Blockshop"']
-    },
-    'Stiletto': {
-        patterns: ['stiletto', 'stiletto-theme', 'st-', '"Stiletto"']
-    },
-    'Envy': {
-        patterns: ['envy-theme', 'envy', '"Envy"', 'env-']
-    },
-    'Pipeline': {
-        patterns: ['pipeline-theme', 'pipeline', '"Pipeline"', 'pl-']
-    },
-    'Expanse': {
-        patterns: ['hero__sidebyside', 'hero__animation-contents', '"Expanse"', 'components.css', '@archetype-themes']
-    },
-    'Turbo': {
-        patterns: ['header__logo', 'sticky_nav', '"Turbo"', 'product_section', 'data-cookiecategory']
-    },
-    'Impulse': {
-        patterns: ['site-nav__link', 'slideshow__slide--image', '"Impulse"', 'header-layout--left-center']
-    },
-    'Venue': {
-        patterns: ['home-carousel', 'section_multi_column_images', '"Venue"', 'data-header-style']
-    },
-    'Ultra': {
-        patterns: ['.build.css', 'header__menu-item', '"Ultra"', 'type="module"', '/t/156/assets/']
-    },
-    'Motion': {
-        patterns: ['motion', 'motion__', 'motion-', '"Motion"']
-    },
-    'Reformation': {
-        patterns: ['nav-aesmi', 'product-badge_aco', '"Reformation"', '/cdn/fonts/lato/']
-    },
-    'Be yours': {
-        patterns: ['be-yours', 'beyours', '"Be yours"', 'product-grid-beyours']
-    },
-    'Blackridge Base Theme': {
-        patterns: ['blackridge', 'blackridge-base', '"Blackridge"', 'br-theme']
-    },
+    // Use API endpoint from props
+    const API_ENDPOINT = props.apiEndpoint || "https://free-shopify-theme-detector-wxjm.vercel.app/api/detect"
 
-    // Pixel Union Themes
-    'Empire': {
-        patterns: ['empire-theme', 'empire', '"Empire"', 'pixel-union']
-    },
-    'Grid': {
-        patterns: ['grid-theme', 'grid__', '"Grid"', 'pixel-union']
-    },
-    'Codebase': {
-        patterns: ['codebase', 'pixel-codebase', '"Codebase"', 'pixel-union']
-    },
-    'Atlantic': {
-        patterns: ['atlantic', 'pixel-atlantic', '"Atlantic"', 'pixel-union']
-    },
-    'Pacific': {
-        patterns: ['pacific', 'pixel-pacific', '"Pacific"', 'pixel-union']
-    },
-    'Tailor': {
-        patterns: ['tailor', 'pixel-tailor', '"Tailor"', 'pixel-union']
-    },
-    'Context': {
-        patterns: ['context', 'pixel-context', '"Context"', 'pixel-union']
-    },
-    'Avenue': {
-        patterns: ['avenue', 'pixel-avenue', '"Avenue"', 'pixel-union']
-    },
-
-    // Out of the Sandbox Themes
-    'Flex': {
-        patterns: ['flex-theme', 'flex__', '"Flex"', 'outofthesandbox']
-    },
-    'Retina': {
-        patterns: ['retina', 'retina__', '"Retina"', 'outofthesandbox']
-    },
-    'Superstore': {
-        patterns: ['superstore', 'superstore__', '"Superstore"', 'outofthesandbox']
-    },
-    'Startup': {
-        patterns: ['startup', 'startup__', '"Startup"', 'outofthesandbox']
-    },
-
-    // HasThemes
-    'Ella': {
-        patterns: ['ella-theme', 'ella__', '"Ella"', 'hasthemes']
-    },
-
-    // Other Popular Themes
-    'Focal': {
-        patterns: ['globo-form-app', 'wizard__steps', '"Focal"', '/cdn/shop/t/170/assets/']
-    },
-    'Symmetry': {
-        patterns: ['product-block', 'navigation__tier-1', '"Symmetry"', 'rimage-wrapper']
-    },
-    'Broadcast': {
-        patterns: ['broadcast__', 'broadcast-', '"Broadcast"', 'tailwindcss']
-    },
-    'Parallax': {
-        patterns: ['parallax', 'parallax__', '"Parallax"', 'parallax-section']
-    },
-    'Warehouse': {
-        patterns: ['warehouse', 'warehouse__', '"Warehouse"']
-    },
-    'Testament': {
-        patterns: ['testament', 'testament__', '"Testament"']
-    },
-    'Shoptimized': {
-        patterns: ['shoptimized', 'shoptimized__', '"Shoptimized"']
-    },
-    'Booster': {
-        patterns: ['booster', 'booster__', '"Booster"', 'booster-apps']
-    },
-    'Streamline': {
-        patterns: ['streamline', 'streamline__', '"Streamline"', 'clean-canvas']
-    },
-    'Showcase': {
-        patterns: ['section-id-template--', 'image-with-text__', '"Showcase"', 'theme-store-id="677"']
-    },
-
-    // Theme Forest & Independent Themes
-    'Basel': {
-        patterns: ['basel-theme', 'basel', '"Basel"', 'wd-cursor-pointer']
-    },
-    'Woodmart': {
-        patterns: ['woodmart', 'woodmart-theme', '"Woodmart"']
-    },
-    'Porto': {
-        patterns: ['porto-theme', 'porto', '"Porto"']
-    },
-    'Flatsome': {
-        patterns: ['flatsome', 'flatsome-theme', '"Flatsome"']
-    },
-    'Electro': {
-        patterns: ['electro', 'electro-theme', '"Electro"']
-    },
-    'Shopkeeper': {
-        patterns: ['shopkeeper', 'shopkeeper-theme', '"Shopkeeper"']
-    },
-    'Merchandiser': {
-        patterns: ['merchandiser', 'merchandiser-theme', '"Merchandiser"']
-    },
-    'Mr. Parker': {
-        patterns: ['mr-parker', 'mrparker', '"Mr. Parker"']
-    },
-    'Clothing': {
-        patterns: ['clothing-theme', 'clothing', '"Clothing"']
-    },
-    'Artisan': {
-        patterns: ['artisan-theme', 'artisan', '"Artisan"']
-    },
-    'Fashionopolism': {
-        patterns: ['fashionopolism', 'fashionopolism-theme', '"Fashionopolism"']
-    },
-    'Testament': {
-        patterns: ['testament-theme', 'testament', '"Testament"']
-    },
-    'District': {
-        patterns: ['district-theme', 'district', '"District"']
-    },
-    'Icon': {
-        patterns: ['icon-theme', '"Icon"', 'responsiveimage--']
-    },
-    'Pop': {
-        patterns: ['pop-theme', '"Pop"', 'animate-pop']
-    },
-    'Split': {
-        patterns: ['split-theme', '"Split"', 'split-layout']
-    },
-    'Canopy': {
-        patterns: ['canopy-theme', '"Canopy"', 'canopy-']
-    },
-    'Ira': {
-        patterns: ['ira-theme', '"Ira"', 'ira-']
-    },
-    'Greta': {
-        patterns: ['greta-theme', '"Greta"', 'greta-']
-    },
-    'Palo': {
-        patterns: ['palo-theme', '"Palo"', 'palo-']
-    },
-    'Combine': {
-        patterns: ['combine-theme', '"Combine"', 'combine-']
-    },
-    'Ride': {
-        patterns: ['ride-theme', '"Ride"', 'ride-']
+    const isValidUrl = (string) => {
+        try {
+            // Add https:// if no protocol is provided
+            const urlToTest = string.startsWith('http') ? string : `https://${string}`;
+            const url = new URL(urlToTest);
+            
+            // Check if it has a valid domain structure
+            return url.hostname.includes('.') && url.hostname.length > 3;
+        } catch (_) {
+            return false;
+        }
     }
-};
 
-function isShopifyStore(html) {
-    const shopifyIndicators = [
-        'Shopify.shop',
-        'shopify.com',
-        'window.Shopify',
-        'myshopify.com',
-        'cdn.shopify.com',
-        'shopify-section',
-        'shopify-analytics',
-        'Shopify.routes',
-        'data-shopify'
-    ];
-    
-    const htmlLower = html.toLowerCase();
-    return shopifyIndicators.some(indicator => 
-        htmlLower.includes(indicator.toLowerCase())
-    );
+    const handleDetect = async () => {
+        setError(null)
+        setResult(null)
+
+        if (!url.trim()) {
+            setError("Please enter a Shopify store URL")
+            return
+        }
+
+        if (!isValidUrl(url)) {
+            setError("Please enter a valid URL (e.g., example.com or https://example.com)")
+            return
+        }
+
+        setLoading(true)
+
+        try {
+            const response = await fetch(API_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ url: url.trim() }),
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                setResult(data.data)
+            } else {
+                setError(
+                    data.error?.message || "Detection failed, please try again"
+                )
+            }
+        } catch (err) {
+            console.error("Detection error:", err)
+            setError(
+                "Network error, please check your connection and try again"
+            )
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleKeyPress = (e) => {
+        if (e.key === "Enter" && !loading) {
+            handleDetect()
+        }
+    }
+
+    return (
+        <div className="detector-container">
+            <style jsx>{`
+                .detector-container {
+                    width: 100%;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 24px 20px;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                    text-align: center;
+                }
+                
+                .input-container {
+                    display: flex;
+                    gap: 0;
+                    max-width: 600px;
+                    margin: 0 auto 24px;
+                }
+                
+                .input-field {
+                    flex: 1;
+                    padding: 16px 20px;
+                    font-size: 16px;
+                    border: 2px solid #E5E5E5;
+                    border-radius: 12px 0 0 12px;
+                    border-right: none;
+                    outline: none;
+                    background-color: #FFFFFF;
+                    color: #333333;
+                    transition: border-color 0.2s;
+                }
+                
+                .input-field:focus {
+                    border-color: #465467;
+                }
+                
+                .detect-button {
+                    padding: 16px 32px;
+                    font-size: 18px;
+                    font-weight: 600;
+                    background-color: #1D1E20;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 0 12px 12px 0;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    min-width: 120px;
+                }
+                
+                .detect-button:hover {
+                    background-color: #333333;
+                }
+                
+                .detect-button:disabled {
+                    background-color: #666666;
+                    cursor: not-allowed;
+                }
+                
+                .error-message {
+                    background-color: #FEE;
+                    border: 1px solid #FCC;
+                    border-radius: 8px;
+                    padding: 12px 20px;
+                    color: #C00;
+                    font-size: 14px;
+                    max-width: 600px;
+                    margin: 0 auto 24px;
+                }
+                
+                .results-container {
+                    background-color: #F8F8F8;
+                    border-radius: 12px;
+                    padding: 16px 24px;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    text-align: left;
+                    border: 1px solid #E5E5E5;
+                }
+              
+                .results-title {
+                    font-size: 24px;
+                    font-weight: 600;
+                    margin-bottom: 16px;
+                    color: #1D1E20;
+                }
+                
+                .theme-section {
+                    margin-bottom: 24px;
+                }
+                
+                .theme-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                }
+                
+                .theme-status {
+                    font-size: 20px;
+                }
+                
+                .theme-name {
+                    background-color: #1D1E20;
+                    color: #FFFFFF;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+                
+                .confidence-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 12px;
+                }
+                
+                .confidence-label {
+                    font-size: 16px;
+                    color: #666666;
+                    min-width: 80px;
+                }
+                
+                .confidence-progress {
+                    flex: 1;
+                    height: 8px;
+                    background-color: #E5E5E5;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                
+                .confidence-fill {
+                    height: 100%;
+                    background-color: #1D1E20;
+                    border-radius: 4px;
+                    transition: width 0.3s ease;
+                }
+                
+                .confidence-value {
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #1D1E20;
+                    min-width: 40px;
+                }
+                
+                .no-shopify {
+                    color: #666666;
+                    font-size: 16px;
+                    margin-bottom: 24px;
+                }
+                
+                .info-section {
+                    border-top: 1px solid #E5E5E5;
+                    padding-top: 20px;
+                }
+                
+                .info-text {
+                    font-size: 14px;
+                    color: #666666;
+                    margin-bottom: 8px;
+                }
+                
+                .customization-badge {
+                    display: inline-block;
+                    background-color: #F59E0B;
+                    color: #FFFFFF;
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    margin-top: 8px;
+                }
+                
+                @media (max-width: 1000px) {
+                    .input-container {
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+                    
+                    .input-field {
+                        border-radius: 12px;
+                        border-right: 2px solid #E5E5E5;
+                    }
+                    
+                    .detect-button {
+                        border-radius: 12px;
+                    }
+                    
+                    .theme-info {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 8px;
+                    }
+                    
+                    .confidence-bar {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 8px;
+                    }
+                    
+                    .confidence-label {
+                        min-width: auto;
+                    }
+                    
+                    .confidence-progress {
+                        width: 100%;
+                    }
+                }
+            `}</style>
+
+            <div className="input-container">
+                <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Paste a Shopify store URL here..."
+                    className="input-field"
+                    disabled={loading}
+                />
+                <button
+                    onClick={handleDetect}
+                    disabled={loading}
+                    className="detect-button"
+                >
+                    {loading ? "Detecting..." : "Detect"}
+                </button>
+            </div>
+
+            {error && <div className="error-message">{error}</div>}
+
+            {result && (
+                <div className="results-container">
+                    <h2 className="results-title">Detection Results</h2>
+
+                    {result.isShopify ? (
+                        <div className="theme-section">
+                            <div className="theme-info">
+                                <span className="theme-status">✅</span>
+                                <span>Shopify Store using</span>
+                                <span className="theme-name">
+                                    {result.theme || 'Unknown Theme'}
+                                </span>
+                            </div>
+                            
+                            <div className="confidence-bar">
+                                <span className="confidence-label">Confidence:</span>
+                                <div className="confidence-progress">
+                                    <div 
+                                        className="confidence-fill"
+                                        style={{ width: `${result.confidence || 0}%` }}
+                                    ></div>
+                                </div>
+                                <span className="confidence-value">{result.confidence || 0}%</span>
+                            </div>
+                            
+                            {result.hasCustomizations && (
+                                <div className="customization-badge">
+                                    Custom modifications detected
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="theme-info">
+                            <span className="theme-status">❌</span>
+                            <p className="no-shopify">
+                                Not a Shopify store - This website uses a different ecommerce platform.
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="info-section">
+                        {result.timestamp && (
+                            <p className="info-text">
+                                <strong>Detected at:</strong>{" "}
+                                {new Date(result.timestamp).toLocaleString()}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
 }
 
-function detectTheme(html) {
-    const htmlLower = html.toLowerCase();
-    let bestMatch = { theme: 'Unknown', score: 0 };
-    let allScores = {};
-    
-    // First check for custom theme indicators
-    const customThemeIndicators = [
-        'theme_name',
-        'schema_name', 
-        'theme-name',
-        'data-theme',
-        'theme_store_id'
-    ];
-    
-    let detectedCustomTheme = null;
-    customThemeIndicators.forEach(indicator => {
-        const regex = new RegExp(`${indicator}["':]\\s*["']([^"']+)["']`, 'i');
-        const match = html.match(regex);
-        if (match && match[1]) {
-            detectedCustomTheme = match[1];
-        }
-    });
-    
-    for (const [themeName, fingerprint] of Object.entries(themeFingerprints)) {
-        let score = 0;
-        
-        fingerprint.patterns.forEach(pattern => {
-            if (htmlLower.includes(pattern.toLowerCase())) {
-                // Higher score for exact theme name matches
-                if (pattern.includes(`"${themeName.toLowerCase()}"`)) {
-                    score += 15;
-                } else if (pattern.includes('"')) {
-                    score += 10;
-                } else if (pattern.includes(themeName.toLowerCase())) {
-                    score += 8;
-                } else {
-                    score += 3;
-                }
-            }
-        });
-        
-        allScores[themeName] = score;
-        
-        if (score > bestMatch.score) {
-            bestMatch = { theme: themeName, score };
-        }
-    }
-    
-    // Check if we found a custom theme name
-    if (detectedCustomTheme && !themeFingerprints[detectedCustomTheme]) {
-        // This is likely a custom theme
-        return {
-            theme: detectedCustomTheme,
-            confidence: 85,
-            isCustom: true,
-            baseTheme: bestMatch.score > 5 ? bestMatch.theme : null,
-            allScores: allScores
-        };
-    }
-    
-    // More sophisticated confidence calculation
-    let confidence = 0;
-    let isCustom = false;
-    
-    if (bestMatch.score > 0) {
-        const maxPossible = 30;
-        confidence = Math.min(Math.round((bestMatch.score / maxPossible) * 100), 100);
-        
-        // Bonus for high confidence matches
-        if (bestMatch.score >= 15) confidence = Math.min(confidence + 15, 100);
-        else if (bestMatch.score >= 10) confidence = Math.min(confidence + 10, 100);
-        
-        // Check if it might be heavily customized
-        if (bestMatch.score < 15 && bestMatch.score > 5) {
-            isCustom = true;
-            confidence = Math.max(confidence - 20, 30); // Lower confidence for possible custom themes
-        }
-    }
-    
-    return {
-        theme: bestMatch.score > 5 ? bestMatch.theme : 'Unknown',
-        confidence: bestMatch.score > 5 ? confidence : 0,
-        isCustom: isCustom,
-        allScores: allScores
-    };
-}
-
-function detectCustomizations(html) {
-    const customIndicators = [
-        'custom.css', 'custom.js', 'custom-', 'modified', 'theme-', 'custom_',
-        'app-custom', 'theme-modified', 'custom-theme'
-    ];
-    const htmlLower = html.toLowerCase();
-    
-    return customIndicators.some(indicator => 
-        htmlLower.includes(indicator)
-    );
-}
-
-module.exports = async (req, res) => {
-    // Handle CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
-    }
-
-    if (req.method !== 'POST') {
-        return res.status(405).json({ 
-            success: false, 
-            error: 'Method not allowed' 
-        });
-    }
-
-    const { url } = req.body;
-
-    if (!url) {
-        return res.status(400).json({ 
-            success: false, 
-            error: 'URL is required' 
-        });
-    }
-
-    try {
-        // Normalize URL
-        let targetUrl = url;
-        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-            targetUrl = 'https://' + targetUrl;
-        }
-
-        console.log(`Analyzing: ${targetUrl}`);
-
-        // Fetch webpage
-        const response = await axios.get(targetUrl, {
-            timeout: 10000, // Increased timeout for better detection
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-
-        const html = response.data;
-
-        // Check if Shopify
-        if (!isShopifyStore(html)) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    url: targetUrl,
-                    isShopify: false,
-                    theme: null,
-                    confidence: 0,
-                    hasCustomizations: false,
-                    timestamp: new Date().toISOString(),
-                    message: 'Not a Shopify store - This website uses a different ecommerce platform'
-                }
-            });
-        }
-
-        // Detect theme
-        const themeResult = detectTheme(html);
-        const hasCustomizations = detectCustomizations(html);
-
-        res.status(200).json({
-            success: true,
-            data: {
-                url: targetUrl,
-                isShopify: true,
-                theme: themeResult.theme,
-                confidence: themeResult.confidence,
-                hasCustomizations: hasCustomizations,
-                isCustomTheme: themeResult.isCustom || false,
-                baseTheme: themeResult.baseTheme || null,
-                timestamp: new Date().toISOString(),
-                message: themeResult.isCustom ? 
-                    `Detected Shopify store using custom theme "${themeResult.theme}"${themeResult.baseTheme ? ` (possibly based on ${themeResult.baseTheme})` : ''}` :
-                    `Detected Shopify store using ${themeResult.theme} theme`,
-                debug: {
-                    totalThemesChecked: Object.keys(themeFingerprints).length,
-                    topMatches: Object.entries(themeResult.allScores)
-                        .filter(([_, score]) => score > 0)
-                        .sort(([_, a], [__, b]) => b - a)
-                        .slice(0, 5)
-                        .map(([theme, score]) => ({ theme, score }))
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error('Detection error:', error.message);
-        res.status(500).json({
-            success: false,
-            error: error.message || 'Detection failed'
-        });
-    }
-};
+// Framer property controls
+addPropertyControls(ShopifyThemeDetector, {
+    apiEndpoint: {
+        title: "API Endpoint", 
+        type: ControlType.String,
+        defaultValue: "https://free-shopify-theme-detector-wxjm.vercel.app/api/detect",
+    },
+})
