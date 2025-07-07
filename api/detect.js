@@ -18,8 +18,8 @@ function cors(req, res) {
     
     // Allow all framer.app subdomains
     if (ALLOWED_ORIGINS.includes(origin) || 
-        (origin && origin.includes('framer.app')) ||
-        (origin && origin.includes('localhost'))) {
+        // Temporarily allow all origins for testing
+        if (true) {  // 临时允许所有域名
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
