@@ -276,6 +276,24 @@ function detectTheme(html) {
     let bestMatch = { theme: 'Unknown', score: 0 };
     let allScores = {};
     
+    // First check for custom theme indicators
+    const customThemeIndicators = [
+        'theme_name',
+        'schema_name', 
+        'theme-name',
+        'data-theme',
+        'theme_store_id'
+    ];
+    
+    let detectedCustomTheme = null;
+    customThemeIndicators.forEach(indicator => {
+        const regex = new RegExp(`${indicator}["':]\\s*["']([^"']+)["']`, 'i');
+        const match = html.match(regex);
+        if (match && match[1]) {
+            detectedCustomTheme = match[1];
+        }
+    });
+    
     for (const [themeName, fingerprint] of Object.entries(themeFingerprints)) {
         let score = 0;
         
@@ -301,20 +319,41 @@ function detectTheme(html) {
         }
     }
     
+    // Check if we found a custom theme name
+    if (detectedCustomTheme && !themeFingerprints[detectedCustomTheme]) {
+        // This is likely a custom theme
+        return {
+            theme: detectedCustomTheme,
+            confidence: 85,
+            isCustom: true,
+            baseTheme: bestMatch.score > 5 ? bestMatch.theme : null,
+            allScores: allScores
+        };
+    }
+    
     // More sophisticated confidence calculation
     let confidence = 0;
+    let isCustom = false;
+    
     if (bestMatch.score > 0) {
-        const maxPossible = 30; // Adjusted for new scoring
+        const maxPossible = 30;
         confidence = Math.min(Math.round((bestMatch.score / maxPossible) * 100), 100);
         
         // Bonus for high confidence matches
         if (bestMatch.score >= 15) confidence = Math.min(confidence + 15, 100);
         else if (bestMatch.score >= 10) confidence = Math.min(confidence + 10, 100);
+        
+        // Check if it might be heavily customized
+        if (bestMatch.score < 15 && bestMatch.score > 5) {
+            isCustom = true;
+            confidence = Math.max(confidence - 20, 30); // Lower confidence for possible custom themes
+        }
     }
     
     return {
-        theme: bestMatch.score > 5 ? bestMatch.theme : 'Unknown', // Raised threshold
+        theme: bestMatch.score > 5 ? bestMatch.theme : 'Unknown',
         confidence: bestMatch.score > 5 ? confidence : 0,
+        isCustom: isCustom,
         allScores: allScores
     };
 }
@@ -405,8 +444,12 @@ module.exports = async (req, res) => {
                 theme: themeResult.theme,
                 confidence: themeResult.confidence,
                 hasCustomizations: hasCustomizations,
+                isCustomTheme: themeResult.isCustom || false,
+                baseTheme: themeResult.baseTheme || null,
                 timestamp: new Date().toISOString(),
-                message: `Detected Shopify store using ${themeResult.theme} theme`,
+                message: themeResult.isCustom ? 
+                    `Detected Shopify store using custom theme "${themeResult.theme}"${themeResult.baseTheme ? ` (possibly based on ${themeResult.baseTheme})` : ''}` :
+                    `Detected Shopify store using ${themeResult.theme} theme`,
                 debug: {
                     totalThemesChecked: Object.keys(themeFingerprints).length,
                     topMatches: Object.entries(themeResult.allScores)
