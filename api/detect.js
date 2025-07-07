@@ -6,8 +6,8 @@ const cheerio = require('cheerio');
 
 // CORS Configuration - Replace with your actual Framer domain
 const ALLOWED_ORIGINS = [
-    'https://magenta-acknowledge-424388.framer.app/',  // Replace with your actual Framer domain
-    'https://podifai.com/',       // If you have a custom domain
+    'https://magenta-acknowledge-424388.framer.app',  // Replace with your actual Framer domain
+    'https://podifai.com',       // If you have a custom domain
     'http://localhost:3000',
     'http://localhost:3001'
 ];
