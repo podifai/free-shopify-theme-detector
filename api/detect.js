@@ -51,7 +51,7 @@ const themeFingerprints = {
     'Aurora': ['"Aurora"', 'aurora.css', 'aurora-theme'],
     'Automation': ['"Automation"', 'automation.css', 'automation-theme'],
     'Avante': ['"Avante"', 'avante.css', 'avante-theme'],
-    'Avatar': ['"Avatar"', 'avatar.css', 'avatar-theme'],
+    'Avatar': ['avatar.css', 'avatar-theme'],
     'Avenue': ['"Avenue"', 'avenue.css', 'avenue-theme'],
     
     'Banjo': ['"Banjo"', 'banjo.css', 'banjo-theme'],
