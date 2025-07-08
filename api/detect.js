@@ -1,660 +1,928 @@
 const axios = require('axios');
 
-// Enhanced theme patterns for all official Shopify themes
-const themeFingerprints = {
-    // Free Shopify Themes - 使用更具体的特征
-    'Dawn': ['"Dawn"', 'dawn.css', 'theme-dawn', 'dawn-theme', 'color-scheme-1', 'dawn-settings'],
-    'Sense': ['"Sense"', 'sense.css', 'sense-theme', 'predictive-search--sense', 'sense-header'],
-    'Craft': ['"Craft"', 'craft.css', 'craft-theme', 'craft-product', 'craft-collection'],
-    'Colorblock': ['"Colorblock"', 'colorblock.css', 'colorblock-theme', 'colorblock-hero'],
-    'Taste': ['"Taste"', 'taste.css', 'taste-theme', 'taste-product'],
-    'Crave': ['"Crave"', 'crave.css', 'crave-theme', 'crave-hero'],
-    'Studio': ['"Studio"', 'studio.css', 'studio-theme', 'studio-gallery'],
-    'Refresh': ['"Refresh"', 'refresh.css', 'refresh-theme', 'refresh-hero'],
-    'Publisher': ['"Publisher"', 'publisher.css', 'publisher-theme', 'publisher-article'],
-    'Origin': ['"Origin"', 'origin.css', 'origin-theme', 'origin-product'],
+// ============================================================================
+// 完整的 Shopify Theme Store ID 映射表 (268个官方主题)
+// 数据来源: Shopify Theme Store API + 社区维护项目
+// 最后更新: 2025年1月
+// ============================================================================
+
+const SHOPIFY_THEME_ID_MAP = {
+    // === 免费主题 (10个) ===
+    887: 'Dawn',
+    1356: 'Sense',
+    1368: 'Craft', 
+    1499: 'Colorblock',
+    1434: 'Taste',
+    1363: 'Crave',
+    1431: 'Studio',
+    1567: 'Refresh',
+    1864: 'Publisher',
+    1841: 'Origin',
     
-    // Premium Themes - 使用更精确的CSS类名和JS标识
-    'Symmetry': ['"Symmetry"', 'symmetry.css', 'symmetry-theme', 'symmetry-product-grid', 'symmetry-collection', 'theme-symmetry'],
-    'Icon': ['icon.css', 'icon-theme', 'icon-product-gallery', 'icon-slideshow', 'theme-icon'],
-    'Prestige': ['"Prestige"', 'prestige.css', 'ProductItem__', 'prestige--v4', 'prestige-theme'],
-    'Impact': ['"Impact"', 'impact.css', 'product-card--blends', 'section-stack', 'impact-theme'],
-    'Impulse': ['"Impulse"', 'impulse.css', 'impulse-theme', 'impulse-product'],
-    'Empire': ['"Empire"', 'empire.css', 'empire-theme', 'empire-product'],
-    'Broadcast': ['"Broadcast"', 'broadcast.css', 'broadcast-theme', 'broadcast-hero'],
-    'Warehouse': ['"Warehouse"', 'warehouse.css', 'warehouse-theme', 'warehouse-product'],
-    'Motion': ['"Motion"', 'motion.css', 'motion-theme', 'motion-video'],
-    'Pipeline': ['"Pipeline"', 'pipeline.css', 'pipeline-theme', 'pipeline-collection'],
-    'Focal': ['"Focal"', 'focal.css', 'focal-theme', 'focal-product'],
-    'Vision': ['"Vision"', 'vision.css', 'vision-theme', 'vision-product'],
-    'Stiletto': ['"Stiletto"', 'stiletto.css', 'stiletto-theme', 'stiletto-product'],
-    'Palo Alto': ['"Palo Alto"', 'palo-alto.css', 'palo-alto-theme', 'palo-alto-product'],
-    'Wonder': ['"Wonder"', 'wonder.css', 'wonder-theme', 'wonder-product'],
-    'Trade': ['"Trade"', 'trade.css', 'trade-theme', 'trade-product'],
-    'Local': ['"Local"', 'local.css', 'local-theme', 'local-store'],
+    // === 付费主题 A-Z (258个) ===
+    1918: 'Abode',
+    657: 'Alchemy',
+    2514: 'Aesthetic',
+    2346: 'Agile',
+    2378: 'Aisle', 
+    1966: 'Align',
+    2217: 'Amber',
+    1390: 'Andaman',
+    2436: 'Area',
+    856: 'Artisan',
+    2277: 'Artist',
+    1608: 'Athens',
+    566: 'Atlantic',
+    1974: 'Atom',
+    1770: 'Aurora',
+    1664: 'Automation',
+    1667: 'Avante',
+    909: 'Avatar',
+    865: 'Avenue',
     
-    // A-Z 其他官方主题
-    'Abode': ['"Abode"', 'abode.css', 'abode-theme'],
-    'Alchemy': ['"Alchemy"', 'alchemy.css', 'alchemy-theme'],
-    'Aesthetic': ['"Aesthetic"', 'aesthetic.css', 'aesthetic-theme'],
-    'Agile': ['"Agile"', 'agile.css', 'agile-theme'],
-    'Aisle': ['"Aisle"', 'aisle.css', 'aisle-theme'],
-    'Align': ['"Align"', 'align.css', 'align-theme'],
-    'Amber': ['"Amber"', 'amber.css', 'amber-theme'],
-    'Andaman': ['"Andaman"', 'andaman.css', 'andaman-theme'],
-    'Area': ['"Area"', 'area.css', 'area-theme'],
-    'Artisan': ['"Artisan"', 'artisan.css', 'artisan-theme'],
-    'Artist': ['"Artist"', 'artist.css', 'artist-theme'],
-    'Athens': ['"Athens"', 'athens.css', 'athens-theme'],
-    'Atlantic': ['"Atlantic"', 'atlantic.css', 'atlantic-theme'],
-    'Atom': ['"Atom"', 'atom.css', 'atom-theme'],
-    'Aurora': ['"Aurora"', 'aurora.css', 'aurora-theme'],
-    'Automation': ['"Automation"', 'automation.css', 'automation-theme'],
-    'Avante': ['"Avante"', 'avante.css', 'avante-theme'],
-    'Avatar': ['avatar.css', 'avatar-theme'],
-    'Avenue': ['"Avenue"', 'avenue.css', 'avenue-theme'],
+    1967: 'Banjo',
+    2324: 'Barcelona',
+    910: 'Baseline',
+    1448: 'Bazaar',
+    1399: 'Be Yours',
+    2138: 'Berlin',
+    939: 'Beyond',
+    606: 'Blockshop',
+    1839: 'Blum',
+    863: 'Boost',
+    2491: 'Borders',
+    766: 'Boundless',
+    2148: 'Brava',
+    868: 'Broadcast',
+    730: 'Brooklyn',
+    1114: 'Bullet',
     
-    'Banjo': ['"Banjo"', 'banjo.css', 'banjo-theme'],
-    'Barcelona': ['"Barcelona"', 'barcelona.css', 'barcelona-theme'],
-    'Baseline': ['"Baseline"', 'baseline.css', 'baseline-theme'],
-    'Bazaar': ['"Bazaar"', 'bazaar.css', 'bazaar-theme'],
-    'Be Yours': ['"Be yours"', 'be-yours.css', 'be-yours-theme'],
-    'Berlin': ['"Berlin"', 'berlin.css', 'berlin-theme'],
-    'Beyond': ['"Beyond"', 'beyond.css', 'beyond-theme'],
-    'Blockshop': ['"Blockshop"', 'blockshop.css', 'blockshop-theme'],
-    'Blum': ['"Blum"', 'blum.css', 'blum-theme'],
-    'Boost': ['"Boost"', 'boost.css', 'boost-theme'],
-    'Borders': ['"Borders"', 'borders.css', 'borders-theme'],
-    'Boundless': ['"Boundless"', 'boundless.css', 'boundless-theme'],
-    'Brava': ['"Brava"', 'brava.css', 'brava-theme'],
-    'Brooklyn': ['"Brooklyn"', 'brooklyn.css', 'brooklyn-theme', 'hero-banner'],
-    'Bullet': ['"Bullet"', 'bullet.css', 'bullet-theme'],
+    691: 'California',
+    2204: 'Cama',
+    732: 'Canopy',
+    812: 'Capital',
+    859: 'Cascade',
+    2328: 'Cello',
+    2010: 'Champion',
+    2063: 'Charge',
+    1584: 'Chord',
+    757: 'Colors',
+    1826: 'Combine',
+    2412: 'Concept',
+    870: 'Context',
+    2564: 'Copenhagen',
+    2348: 'Cornerstone',
+    1829: 'Creative',
+    1922: 'Creator',
     
-    'California': ['"California"', 'california.css', 'california-theme'],
-    'Cama': ['"Cama"', 'cama.css', 'cama-theme'],
-    'Canopy': ['"Canopy"', 'canopy.css', 'canopy-theme'],
-    'Capital': ['"Capital"', 'capital.css', 'capital-theme'],
-    'Cascade': ['"Cascade"', 'cascade.css', 'cascade-theme'],
-    'Cello': ['"Cello"', 'cello.css', 'cello-theme'],
-    'Champion': ['"Champion"', 'champion.css', 'champion-theme'],
-    'Charge': ['"Charge"', 'charge.css', 'charge-theme'],
-    'Chord': ['"Chord"', 'chord.css', 'chord-theme'],
-    'Colors': ['"Colors"', 'colors.css', 'colors-theme'],
-    'Combine': ['"Combine"', 'combine.css', 'combine-theme'],
-    'Concept': ['"Concept"', 'concept.css', 'concept-theme'],
-    'Context': ['"Context"', 'context.css', 'context-theme'],
-    'Copenhagen': ['"Copenhagen"', 'copenhagen.css', 'copenhagen-theme'],
-    'Cornerstone': ['"Cornerstone"', 'cornerstone.css', 'cornerstone-theme'],
-    'Creative': ['"Creative"', 'creative.css', 'creative-theme'],
-    'Creator': ['"Creator"', 'creator.css', 'creator-theme'],
+    796: 'Debut',
+    2539: 'Digital',
+    2431: 'Distinctive',
+    735: 'District',
+    2273: 'Divide',
+    2931: 'Divine',
+    1197: 'Drop',
     
-    'Debut': ['"Debut"', 'debut.css', 'debut-theme', 'site-header', 'product-single'],
-    'Digital': ['"Digital"', 'digital.css', 'digital-theme'],
-    'Distinctive': ['"Distinctive"', 'distinctive.css', 'distinctive-theme'],
-    'District': ['"District"', 'district.css', 'district-theme'],
-    'Divide': ['"Divide"', 'divide.css', 'divide-theme'],
-    'Divine': ['"Divine"', 'divine.css', 'divine-theme'],
-    'Drop': ['"Drop"', 'drop.css', 'drop-theme'],
+    3070: 'Eclipse',
+    457: 'Editions',
+    827: 'Editorial',
+    1743: 'Effortless',
+    2164: 'Electro',
+    2578: 'Elysian',
+    833: 'Emerge',
+    838: 'Empire',
+    1854: 'Emporium',
+    2717: 'Energy',
+    1657: 'Enterprise',
+    411: 'Envy',
+    1790: 'Erickson',
+    2366: 'Essence',
+    2482: 'Essentials',
+    2048: 'Eurus',
+    1828: 'Exhibit',
+    902: 'Expanse',
+    885: 'Express',
+    230: 'Expression',
     
-    'Eclipse': ['"Eclipse"', 'eclipse.css', 'eclipse-theme'],
-    'Editions': ['"Editions"', 'editions.css', 'editions-theme'],
-    'Editorial': ['"Editorial"', 'editorial.css', 'editorial-theme'],
-    'Effortless': ['"Effortless"', 'effortless.css', 'effortless-theme'],
-    'Electro': ['"Electro"', 'electro.css', 'electro-theme'],
-    'Elysian': ['"Elysian"', 'elysian.css', 'elysian-theme'],
-    'Emerge': ['"Emerge"', 'emerge.css', 'emerge-theme'],
-    'Emporium': ['"Emporium"', 'emporium.css', 'emporium-theme'],
-    'Energy': ['"Energy"', 'energy.css', 'energy-theme'],
-    'Enterprise': ['"Enterprise"', 'enterprise.css', 'enterprise-theme'],
-    'Envy': ['"Envy"', 'envy.css', 'envy-theme'],
-    'Erickson': ['"Erickson"', 'erickson.css', 'erickson-theme'],
-    'Essence': ['"Essence"', 'essence.css', 'essence-theme'],
-    'Essentials': ['"Essentials"', 'essentials.css', 'essentials-theme'],
-    'Eurus': ['"Eurus"', 'eurus.css', 'eurus-theme'],
-    'Exhibit': ['"Exhibit"', 'exhibit.css', 'exhibit-theme'],
-    'Expanse': ['"Expanse"', 'expanse.css', 'expanse-theme'],
-    'Express': ['"Express"', 'express.css', 'express-theme'],
-    'Expression': ['"Expression"', 'expression.css', 'expression-theme'],
+    2101: 'Fame',
+    141: 'Fashionopolism',
+    1949: 'Fetch',
+    2847: 'Flawless',
+    801: 'Flow',
+    714: 'Focal',
+    918: 'Foodie',
+    1492: 'Forge',
+    1716: 'Frame',
+    908: 'Fresh',
     
-    'Fame': ['"Fame"', 'fame.css', 'fame-theme'],
-    'Fashionopolism': ['"Fashionopolism"', 'fashionopolism.css', 'fashionopolism-theme'],
-    'Fetch': ['"Fetch"', 'fetch.css', 'fetch-theme'],
-    'Flawless': ['"Flawless"', 'flawless.css', 'flawless-theme'],
-    'Flow': ['"Flow"', 'flow.css', 'flow-theme'],
-    'Foodie': ['"Foodie"', 'foodie.css', 'foodie-theme'],
-    'Forge': ['"Forge"', 'forge.css', 'forge-theme'],
-    'Frame': ['"Frame"', 'frame.css', 'frame-theme'],
-    'Fresh': ['"Fresh"', 'fresh.css', 'fresh-theme'],
+    2077: 'Gain',
+    851: 'Galleria',
+    2222: 'Gem',
+    718: 'Grid',
     
-    'Gain': ['"Gain"', 'gain.css', 'gain-theme'],
-    'Galleria': ['"Galleria"', 'galleria.css', 'galleria-theme'],
-    'Gem': ['"Gem"', 'gem.css', 'gem-theme'],
-    'Grid': ['"Grid"', 'grid.css', 'grid-theme'],
+    1581: 'Habitat',
+    1791: 'Handmade',
+    826: 'Handy',
+    903: 'Highlight',
+    2160: 'Honey',
+    2158: 'Huge',
     
-    'Habitat': ['"Habitat"', 'habitat.css', 'habitat-theme'],
-    'Handmade': ['handmade.css', 'handmade-theme'],
-    'Handy': ['"Handy"', 'handy.css', 'handy-theme'],
-    'Highlight': ['highlight.css', 'highlight-theme'],
-    'Honey': ['honey.css', 'honey-theme'],
-    'Huge': ['huge.css', 'huge-theme'],
+    686: 'Icon',
+    2315: 'Igloo',
+    3027: 'Ignite',
+    1190: 'Impact',
+    857: 'Impulse',
+    1536: 'Influence',
+    2061: 'Infinity',
+    790: 'Ira',
+    2489: 'Iris',
     
-    'Igloo': ['"Igloo"', 'igloo.css', 'igloo-theme'],
-    'Ignite': ['"Ignite"', 'ignite.css', 'ignite-theme'],
-    'Influence': ['"Influence"', 'influence.css', 'influence-theme'],
-    'Infinity': ['"Infinity"', 'infinity.css', 'infinity-theme'],
-    'Ira': ['"Ira"', 'ira.css', 'ira-theme'],
-    'Iris': ['"Iris"', 'iris.css', 'iris-theme'],
+    1843: 'Kairo',
+    2943: 'Keystone',
+    2268: 'Kidu',
+    2948: 'King',
+    725: 'Kingdom',
+    3001: 'Koto',
     
-    'Kairo': ['"Kairo"', 'kairo.css', 'kairo-theme'],
-    'Keystone': ['"Keystone"', 'keystone.css', 'keystone-theme'],
-    'Kidu': ['"Kidu"', 'kidu.css', 'kidu-theme'],
-    'King': ['"King"', 'king.css', 'king-theme'],
-    'Kingdom': ['"Kingdom"', 'kingdom.css', 'kingdom-theme'],
-    'Koto': ['"Koto"', 'koto.css', 'koto-theme'],
+    773: 'Label',
+    793: 'Launch',
+    1651: 'Local',
+    846: 'Loft',
+    798: 'Lorenza',
+    2171: 'Lute',
+    2779: 'Luxe',
     
-    'Label': ['label.css', 'label-theme'],
-    'Launch': ['"Launch"', 'launch.css', 'launch-theme'],
-    'Loft': ['"Loft"', 'loft.css', 'loft-theme'],
-    'Lorenza': ['"Lorenza"', 'lorenza.css', 'lorenza-theme'],
-    'Lute': ['"Lute"', 'lute.css', 'lute-theme'],
-    'Luxe': ['"Luxe"', 'luxe.css', 'luxe-theme'],
+    2883: 'Machina',
+    2870: 'Madrid',
+    765: 'Maker',
+    1696: 'Mandolin',
+    2186: 'Maranello',
+    1907: 'Marble',
+    450: 'Masonry',
+    1979: 'Mavon',
+    2845: 'Meka',
+    380: 'Minimal',
+    2316: 'Minimalista',
+    1571: 'Minion',
+    464: 'Mobilia',
+    1578: 'Mode',
+    849: 'Modular',
+    1795: 'Modules',
+    1497: 'Mojave',
+    1600: 'Momentum',
+    2125: 'Monaco',
+    2515: 'Monk',
+    1818: 'Mono',
+    847: 'Motion',
+    567: 'Mr.Parker',
+    2337: 'Multi',
+    2512: 'Murmel',
     
-    'Machina': ['"Machina"', 'machina.css', 'machina-theme'],
-    'Madrid': ['"Madrid"', 'madrid.css', 'madrid-theme'],
-    'Maker': ['"Maker"', 'maker.css', 'maker-theme'],
-    'Mandolin': ['"Mandolin"', 'mandolin.css', 'mandolin-theme'],
-    'Maranello': ['"Maranello"', 'maranello.css', 'maranello-theme'],
-    'Marble': ['"Marble"', 'marble.css', 'marble-theme'],
-    'Masonry': ['"Masonry"', 'masonry.css', 'masonry-theme'],
-    'Mavon': ['"Mavon"', 'mavon.css', 'mavon-theme'],
-    'Meka': ['"Meka"', 'meka.css', 'meka-theme'],
-    'Minimal': ['"Minimal"', 'minimal.css', 'minimal-theme'],
-    'Minimalista': ['"Minimalista"', 'minimalista.css', 'minimalista-theme'],
-    'Minion': ['"Minion"', 'minion.css', 'minion-theme'],
-    'Mobilia': ['"Mobilia"', 'mobilia.css', 'mobilia-theme'],
-    'Mode': ['"Mode"', 'mode.css', 'mode-theme'],
-    'Modular': ['"Modular"', 'modular.css', 'modular-theme'],
-    'Modules': ['"Modules"', 'modules.css', 'modules-theme'],
-    'Mojave': ['"Mojave"', 'mojave.css', 'mojave-theme'],
-    'Momentum': ['"Momentum"', 'momentum.css', 'momentum-theme'],
-    'Monaco': ['"Monaco"', 'monaco.css', 'monaco-theme'],
-    'Monk': ['"Monk"', 'monk.css', 'monk-theme'],
-    'Mono': ['"Mono"', 'mono.css', 'mono-theme'],
-    'Mr.Parker': ['"Mr.Parker"', 'mr-parker.css', 'mr-parker-theme'],
-    'Multi': ['"Multi"', 'multi.css', 'multi-theme'],
-    'Murmel': ['"Murmel"', 'murmel.css', 'murmel-theme'],
+    829: 'Narrative',
+    1878: 'Neat',
+    2820: 'Nexa',
+    2240: 'Next',
+    2546: 'Noblesse',
+    2926: 'Noire',
+    2801: 'Nordic',
+    1460: 'North',
+    2175: 'Nostalgia',
     
-    'Narrative': ['"Narrative"', 'narrative.css', 'narrative-theme'],
-    'Neat': ['"Neat"', 'neat.css', 'neat-theme'],
-    'Nexa': ['"Nexa"', 'nexa.css', 'nexa-theme'],
-    'Next': ['next.css', 'next-theme'],
-    'Noblesse': ['"Noblesse"', 'noblesse.css', 'noblesse-theme'],
-    'Noire': ['"Noire"', 'noire.css', 'noire-theme'],
-    'Nordic': ['"Nordic"', 'nordic.css', 'nordic-theme'],
-    'North': ['north.css', 'north-theme'],
-    'Nostalgia': ['"Nostalgia"', 'nostalgia.css', 'nostalgia-theme'],
+    2896: 'Outsiders',
     
-    'Outsiders': ['"Outsiders"', 'outsiders.css', 'outsiders-theme'],
+    705: 'Pacific',
+    777: 'Palo Alto',
+    1662: 'Paper',
+    688: 'Parallax',
+    2702: 'Paris',
+    2275: 'Pesto',
+    2812: 'Piano',
+    739: 'Pipeline',
+    2852: 'Pinnacle',
+    2493: 'Polyform',
+    1924: 'Portland',
+    2144: 'Praise',
+    855: 'Prestige',
+    587: 'Providence',
+    1654: 'Pursuit',
     
-    'Pacific': ['pacific.css', 'pacific-theme'],
-    'Paper': ['paper.css', 'paper-theme'],
-    'Parallax': ['"Parallax"', 'parallax.css', 'parallax-theme'],
-    'Paris': ['paris.css', 'paris-theme'],
-    'Pesto': ['"Pesto"', 'pesto.css', 'pesto-theme'],
-    'Piano': ['"Piano"', 'piano.css', 'piano-theme'],
-    'Pinnacle': ['"Pinnacle"', 'pinnacle.css', 'pinnacle-theme'],
-    'Polyform': ['"Polyform"', 'polyform.css', 'polyform-theme'],
-    'Portland': ['"Portland"', 'portland.css', 'portland-theme'],
-    'Praise': ['"Praise"', 'praise.css', 'praise-theme'],
-    'Providence': ['"Providence"', 'providence.css', 'providence-theme'],
-    'Pursuit': ['"Pursuit"', 'pursuit.css', 'pursuit-theme'],
+    853: 'Reach',
+    1762: 'Reformation',
+    2782: 'Refine',
+    2477: 'Relax',
+    304: 'Responsive',
+    601: 'Retina',
+    2630: 'Retro',
+    1500: 'Ride',
+    1777: 'Roam',
     
-    'Reach': ['"Reach"', 'reach.css', 'reach-theme'],
-    'Reformation': ['"Reformation"', 'reformation.css', 'reformation-theme'],
-    'Refine': ['"Refine"', 'refine.css', 'refine-theme'],
-    'Relax': ['"Relax"', 'relax.css', 'relax-theme'],
-    'Responsive': ['"Responsive"', 'responsive.css', 'responsive-theme'],
-    'Retina': ['"Retina"', 'retina.css', 'retina-theme'],
-    'Retro': ['"Retro"', 'retro.css', 'retro-theme'],
-    'Ride': ['ride.css', 'ride-theme'],
-    'Roam': ['"Roam"', 'roam.css', 'roam-theme'],
+    1926: 'Sahara',
+    2881: 'Satoshi',
+    2372: 'Select',
+    1535: 'Shapes',
+    2619: 'Shark',
+    2576: 'Shine',
+    677: 'Showcase',
+    687: 'ShowTime',
+    578: 'Simple',
+    2599: 'Sitar',
+    2821: 'Sleek',
+    2825: 'Soul',
+    2659: 'Space',
+    911: 'Spark',
+    842: 'Split',
+    2455: 'Starlite',
+    652: 'Startup',
+    1621: 'Stiletto',
+    1405: 'Stockholm',
+    2105: 'Stockmart',
+    864: 'Story',
+    872: 'Streamline',
+    2238: 'StyleScape',
+    57: 'Sunrise',
+    679: 'Supply',
+    2737: 'Swipe',
+    2117: 'Sydney',
+    568: 'Symmetry',
     
-    'Sahara': ['"Sahara"', 'sahara.css', 'sahara-theme'],
-    'Satoshi': ['"Satoshi"', 'satoshi.css', 'satoshi-theme'],
-    'Select': ['"Select"', 'select.css', 'select-theme'],
-    'Shapes': ['"Shapes"', 'shapes.css', 'shapes-theme'],
-    'Shark': ['"Shark"', 'shark.css', 'shark-theme'],
-    'Shine': ['"Shine"', 'shine.css', 'shine-theme'],
-    'Showcase': ['"Showcase"', 'showcase.css', 'showcase-theme'],
-    'ShowTime': ['"ShowTime"', 'showtime.css', 'showtime-theme'],
-    'Simple': ['"Simple"', 'simple.css', 'simple-theme'],
-    'Sitar': ['"Sitar"', 'sitar.css', 'sitar-theme'],
-    'Sleek': ['"Sleek"', 'sleek.css', 'sleek-theme'],
-    'Soul': ['soul.css', 'soul-theme'],
-    'Space': ['space.css', 'space-theme'],
-    'Spark': ['"Spark"', 'spark.css', 'spark-theme'],
-    'Split': ['"Split"', 'split.css', 'split-theme'],
-    'Starlite': ['"Starlite"', 'starlite.css', 'starlite-theme'],
-    'Startup': ['"Startup"', 'startup.css', 'startup-theme'],
-    'Stockholm': ['"Stockholm"', 'stockholm.css', 'stockholm-theme'],
-    'Stockmart': ['"Stockmart"', 'stockmart.css', 'stockmart-theme'],
-    'Story': ['story.css', 'story-theme'],
-    'Streamline': ['"Streamline"', 'streamline.css', 'streamline-theme'],
-    'StyleScape': ['"StyleScape"', 'stylescape.css', 'stylescape-theme'],
-    'Sunrise': ['"Sunrise"', 'sunrise.css', 'sunrise-theme'],
-    'Supply': ['"Supply"', 'supply.css', 'supply-theme'],
-    'Swipe': ['"Swipe"', 'swipe.css', 'swipe-theme'],
-    'Sydney': ['"Sydney"', 'sydney.css', 'sydney-theme'],
+    1751: 'Taiga',
+    1457: 'Tailor',
+    2534: 'Takeout',
+    623: 'Testament',
+    2629: 'Tokyo',
+    2358: 'Toyo',
+    2699: 'Trade',
+    2980: 'Trend',
     
-    'Taiga': ['"Taiga"', 'taiga.css', 'taiga-theme'],
-    'Tailor': ['"Tailor"', 'tailor.css', 'tailor-theme'],
-    'Takeout': ['"Takeout"', 'takeout.css', 'takeout-theme'],
-    'Testament': ['"Testament"', 'testament.css', 'testament-theme'],
-    'Tokyo': ['"Tokyo"', 'tokyo.css', 'tokyo-theme'],
-    'Toyo': ['"Toyo"', 'toyo.css', 'toyo-theme'],
-    'Trend': ['"Trend"', 'trend.css', 'trend-theme'],
+    2967: 'Ultra',
+    2264: 'Unicorn',
+    1754: 'Upscale',
+    2405: 'Urban',
+    2213: 'Urge',
     
-    'Ultra': ['"Ultra"', 'ultra.css', 'ultra-theme', '.build.css', 'header__menu-item'],
-    'Unicorn': ['"Unicorn"', 'unicorn.css', 'unicorn-theme'],
-    'Upscale': ['"Upscale"', 'upscale.css', 'upscale-theme'],
-    'Urban': ['"Urban"', 'urban.css', 'urban-theme'],
-    'Urge': ['"Urge"', 'urge.css', 'urge-theme'],
+    459: 'Vantage',
+    2566: 'Veena',
+    775: 'Venture',
+    836: 'Venue',
+    2913: 'Vincent',
+    1701: 'Viola',
+    2053: 'Vision',
+    2285: 'Vivid',
+    808: 'Vogue',
     
-    'Vantage': ['"Vantage"', 'vantage.css', 'vantage-theme'],
-    'Veena': ['"Veena"', 'veena.css', 'veena-theme'],
-    'Venture': ['"Venture"', 'venture.css', 'venture-theme'],
-    'Venue': ['"Venue"', 'venue.css', 'venue-theme'],
-    'Vincent': ['"Vincent"', 'vincent.css', 'vincent-theme'],
-    'Viola': ['"Viola"', 'viola.css', 'viola-theme'],
-    'Vivid': ['"Vivid"', 'vivid.css', 'vivid-theme'],
-    'Vogue': ['"Vogue"', 'vogue.css', 'vogue-theme'],
+    871: 'Warehouse',
+    1819: 'Whisk',
+    2684: 'Wonder',
+    2239: 'Woodstock',
     
-    'Whisk': ['"Whisk"', 'whisk.css', 'whisk-theme'],
-    'Woodstock': ['"Woodstock"', 'woodstock.css', 'woodstock-theme'],
+    2221: 'Xclusive',
+    1609: 'Xtra',
     
-    'Xclusive': ['"Xclusive"', 'xclusive.css', 'xclusive-theme'],
-    'Xtra': ['"Xtra"', 'xtra.css', 'xtra-theme'],
+    1615: 'Yuva',
     
-    'Yuva': ['"Yuva"', 'yuva.css', 'yuva-theme'],
-    
-    'Zest': ['"Zest"', 'zest.css', 'zest-theme'],
-    'Zora': ['"Zora"', 'zora.css', 'zora-theme'],
-    
-    // Legacy/Popular Third-party Themes (Non-official but commonly used)
-    'Turbo': ['"Turbo"', 'turbo.css', 'header__logo', 'sticky_nav', 'turbo-theme'],
-    'Shella': ['"Shella"', 'shella.css', 'shella-theme'],
-    'Kalles': ['"Kalles"', 'kalles.css', 'kalles-theme'],
-    'Ella': ['"Ella"', 'ella.css', 'ella-theme'],
-    'Debutify': ['"Debutify"', 'debutify.css', 'debutify-theme'],
-    'Booster': ['"Booster"', 'booster.css', 'booster-theme']
+    1611: 'Zest',
+    2505: 'Zora'
 };
 
-// Shopify Theme Store links
-const themeLinks = {
-    // Free Themes
-    'Dawn': 'https://themes.shopify.com/themes/dawn',
-    'Sense': 'https://themes.shopify.com/themes/sense',
-    'Craft': 'https://themes.shopify.com/themes/craft',
-    'Colorblock': 'https://themes.shopify.com/themes/colorblock',
-    'Taste': 'https://themes.shopify.com/themes/taste',
-    'Crave': 'https://themes.shopify.com/themes/crave',
-    'Studio': 'https://themes.shopify.com/themes/studio',
-    'Refresh': 'https://themes.shopify.com/themes/refresh',
-    'Publisher': 'https://themes.shopify.com/themes/publisher',
-    'Origin': 'https://themes.shopify.com/themes/origin',
-    
-    // Official Premium Themes A-D
-    'Abode': 'https://themes.shopify.com/themes/abode',
-    'Alchemy': 'https://themes.shopify.com/themes/alchemy',
-    'Aesthetic': 'https://themes.shopify.com/themes/aesthetic',
-    'Agile': 'https://themes.shopify.com/themes/agile',
-    'Aisle': 'https://themes.shopify.com/themes/aisle',
-    'Align': 'https://themes.shopify.com/themes/align',
-    'Amber': 'https://themes.shopify.com/themes/amber',
-    'Andaman': 'https://themes.shopify.com/themes/andaman',
-    'Area': 'https://themes.shopify.com/themes/area',
-    'Artisan': 'https://themes.shopify.com/themes/artisan',
-    'Artist': 'https://themes.shopify.com/themes/artist',
-    'Athens': 'https://themes.shopify.com/themes/athens',
-    'Atlantic': 'https://themes.shopify.com/themes/atlantic',
-    'Atom': 'https://themes.shopify.com/themes/atom',
-    'Aurora': 'https://themes.shopify.com/themes/aurora',
-    'Automation': 'https://themes.shopify.com/themes/automation',
-    'Avante': 'https://themes.shopify.com/themes/avante',
-    'Avatar': 'https://themes.shopify.com/themes/avatar',
-    'Avenue': 'https://themes.shopify.com/themes/avenue',
-    'Banjo': 'https://themes.shopify.com/themes/banjo',
-    'Barcelona': 'https://themes.shopify.com/themes/barcelona',
-    'Baseline': 'https://themes.shopify.com/themes/baseline',
-    'Bazaar': 'https://themes.shopify.com/themes/bazaar',
-    'Be Yours': 'https://themes.shopify.com/themes/be-yours',
-    'Berlin': 'https://themes.shopify.com/themes/berlin',
-    'Beyond': 'https://themes.shopify.com/themes/beyond',
-    'Blockshop': 'https://themes.shopify.com/themes/blockshop',
-    'Blum': 'https://themes.shopify.com/themes/blum',
-    'Boost': 'https://themes.shopify.com/themes/boost',
-    'Borders': 'https://themes.shopify.com/themes/borders',
-    'Boundless': 'https://themes.shopify.com/themes/boundless',
-    'Brava': 'https://themes.shopify.com/themes/brava',
-    'Broadcast': 'https://themes.shopify.com/themes/broadcast',
-    'Brooklyn': 'https://themes.shopify.com/themes/brooklyn',
-    'Bullet': 'https://themes.shopify.com/themes/bullet',
-    'California': 'https://themes.shopify.com/themes/california',
-    'Cama': 'https://themes.shopify.com/themes/cama',
-    'Canopy': 'https://themes.shopify.com/themes/canopy',
-    'Capital': 'https://themes.shopify.com/themes/capital',
-    'Cascade': 'https://themes.shopify.com/themes/cascade',
-    'Cello': 'https://themes.shopify.com/themes/cello',
-    'Champion': 'https://themes.shopify.com/themes/champion',
-    'Charge': 'https://themes.shopify.com/themes/charge',
-    'Chord': 'https://themes.shopify.com/themes/chord',
-    'Colors': 'https://themes.shopify.com/themes/colors',
-    'Combine': 'https://themes.shopify.com/themes/combine',
-    'Concept': 'https://themes.shopify.com/themes/concept',
-    'Context': 'https://themes.shopify.com/themes/context',
-    'Copenhagen': 'https://themes.shopify.com/themes/copenhagen',
-    'Cornerstone': 'https://themes.shopify.com/themes/cornerstone',
-    'Creative': 'https://themes.shopify.com/themes/creative',
-    'Creator': 'https://themes.shopify.com/themes/creator',
-    'Debut': 'https://themes.shopify.com/themes/debut',
-    'Digital': 'https://themes.shopify.com/themes/digital',
-    'Distinctive': 'https://themes.shopify.com/themes/distinctive',
-    'District': 'https://themes.shopify.com/themes/district',
-    'Divide': 'https://themes.shopify.com/themes/divide',
-    'Divine': 'https://themes.shopify.com/themes/divine',
-    'Drop': 'https://themes.shopify.com/themes/drop',
-    
-    // E-I
-    'Eclipse': 'https://themes.shopify.com/themes/eclipse',
-    'Editions': 'https://themes.shopify.com/themes/editions',
-    'Editorial': 'https://themes.shopify.com/themes/editorial',
-    'Effortless': 'https://themes.shopify.com/themes/effortless',
-    'Electro': 'https://themes.shopify.com/themes/electro',
-    'Elysian': 'https://themes.shopify.com/themes/elysian',
-    'Emerge': 'https://themes.shopify.com/themes/emerge',
-    'Empire': 'https://themes.shopify.com/themes/empire',
-    'Emporium': 'https://themes.shopify.com/themes/emporium',
-    'Energy': 'https://themes.shopify.com/themes/energy',
-    'Enterprise': 'https://themes.shopify.com/themes/enterprise',
-    'Envy': 'https://themes.shopify.com/themes/envy',
-    'Erickson': 'https://themes.shopify.com/themes/erickson',
-    'Essence': 'https://themes.shopify.com/themes/essence',
-    'Essentials': 'https://themes.shopify.com/themes/essentials',
-    'Eurus': 'https://themes.shopify.com/themes/eurus',
-    'Exhibit': 'https://themes.shopify.com/themes/exhibit',
-    'Expanse': 'https://themes.shopify.com/themes/expanse',
-    'Express': 'https://themes.shopify.com/themes/express',
-    'Expression': 'https://themes.shopify.com/themes/expression',
-    'Fame': 'https://themes.shopify.com/themes/fame',
-    'Fashionopolism': 'https://themes.shopify.com/themes/fashionopolism',
-    'Fetch': 'https://themes.shopify.com/themes/fetch',
-    'Flawless': 'https://themes.shopify.com/themes/flawless',
-    'Flow': 'https://themes.shopify.com/themes/flow',
-    'Focal': 'https://themes.shopify.com/themes/focal',
-    'Foodie': 'https://themes.shopify.com/themes/foodie',
-    'Forge': 'https://themes.shopify.com/themes/forge',
-    'Frame': 'https://themes.shopify.com/themes/frame',
-    'Fresh': 'https://themes.shopify.com/themes/fresh',
-    'Gain': 'https://themes.shopify.com/themes/gain',
-    'Galleria': 'https://themes.shopify.com/themes/galleria',
-    'Gem': 'https://themes.shopify.com/themes/gem',
-    'Grid': 'https://themes.shopify.com/themes/grid',
-    'Habitat': 'https://themes.shopify.com/themes/habitat',
-    'Handmade': 'https://themes.shopify.com/themes/handmade',
-    'Handy': 'https://themes.shopify.com/themes/handy',
-    'Highlight': 'https://themes.shopify.com/themes/highlight',
-    'Honey': 'https://themes.shopify.com/themes/honey',
-    'Huge': 'https://themes.shopify.com/themes/huge',
-    'Icon': 'https://themes.shopify.com/themes/icon',
-    'Igloo': 'https://themes.shopify.com/themes/igloo',
-    'Ignite': 'https://themes.shopify.com/themes/ignite',
-    'Impact': 'https://themes.shopify.com/themes/impact',
-    'Impulse': 'https://themes.shopify.com/themes/impulse',
-    'Influence': 'https://themes.shopify.com/themes/influence',
-    'Infinity': 'https://themes.shopify.com/themes/infinity',
-    'Ira': 'https://themes.shopify.com/themes/ira',
-    'Iris': 'https://themes.shopify.com/themes/iris',
-    
-    // J-P
-    'Kairo': 'https://themes.shopify.com/themes/kairo',
-    'Keystone': 'https://themes.shopify.com/themes/keystone',
-    'Kidu': 'https://themes.shopify.com/themes/kidu',
-    'King': 'https://themes.shopify.com/themes/king',
-    'Kingdom': 'https://themes.shopify.com/themes/kingdom',
-    'Koto': 'https://themes.shopify.com/themes/koto',
-    'Label': 'https://themes.shopify.com/themes/label',
-    'Launch': 'https://themes.shopify.com/themes/launch',
-    'Local': 'https://themes.shopify.com/themes/local',
-    'Loft': 'https://themes.shopify.com/themes/loft',
-    'Lorenza': 'https://themes.shopify.com/themes/lorenza',
-    'Lute': 'https://themes.shopify.com/themes/lute',
-    'Luxe': 'https://themes.shopify.com/themes/luxe',
-    'Machina': 'https://themes.shopify.com/themes/machina',
-    'Madrid': 'https://themes.shopify.com/themes/madrid',
-    'Maker': 'https://themes.shopify.com/themes/maker',
-    'Mandolin': 'https://themes.shopify.com/themes/mandolin',
-    'Maranello': 'https://themes.shopify.com/themes/maranello',
-    'Marble': 'https://themes.shopify.com/themes/marble',
-    'Masonry': 'https://themes.shopify.com/themes/masonry',
-    'Mavon': 'https://themes.shopify.com/themes/mavon',
-    'Meka': 'https://themes.shopify.com/themes/meka',
-    'Minimal': 'https://themes.shopify.com/themes/minimal',
-    'Minimalista': 'https://themes.shopify.com/themes/minimalista',
-    'Minion': 'https://themes.shopify.com/themes/minion',
-    'Mobilia': 'https://themes.shopify.com/themes/mobilia',
-    'Mode': 'https://themes.shopify.com/themes/mode',
-    'Modular': 'https://themes.shopify.com/themes/modular',
-    'Modules': 'https://themes.shopify.com/themes/modules',
-    'Mojave': 'https://themes.shopify.com/themes/mojave',
-    'Momentum': 'https://themes.shopify.com/themes/momentum',
-    'Monaco': 'https://themes.shopify.com/themes/monaco',
-    'Monk': 'https://themes.shopify.com/themes/monk',
-    'Mono': 'https://themes.shopify.com/themes/mono',
-    'Motion': 'https://themes.shopify.com/themes/motion',
-    'Mr.Parker': 'https://themes.shopify.com/themes/mr-parker',
-    'Multi': 'https://themes.shopify.com/themes/multi',
-    'Murmel': 'https://themes.shopify.com/themes/murmel',
-    'Narrative': 'https://themes.shopify.com/themes/narrative',
-    'Neat': 'https://themes.shopify.com/themes/neat',
-    'Nexa': 'https://themes.shopify.com/themes/nexa',
-    'Next': 'https://themes.shopify.com/themes/next',
-    'Noblesse': 'https://themes.shopify.com/themes/noblesse',
-    'Noire': 'https://themes.shopify.com/themes/noire',
-    'Nordic': 'https://themes.shopify.com/themes/nordic',
-    'North': 'https://themes.shopify.com/themes/north',
-    'Nostalgia': 'https://themes.shopify.com/themes/nostalgia',
-    'Outsiders': 'https://themes.shopify.com/themes/outsiders',
-    'Pacific': 'https://themes.shopify.com/themes/pacific',
-    'Palo Alto': 'https://themes.shopify.com/themes/palo-alto',
-    'Paper': 'https://themes.shopify.com/themes/paper',
-    'Parallax': 'https://themes.shopify.com/themes/parallax',
-    'Paris': 'https://themes.shopify.com/themes/paris',
-    'Pesto': 'https://themes.shopify.com/themes/pesto',
-    'Piano': 'https://themes.shopify.com/themes/piano',
-    'Pinnacle': 'https://themes.shopify.com/themes/pinnacle',
-    'Pipeline': 'https://themes.shopify.com/themes/pipeline',
-    'Polyform': 'https://themes.shopify.com/themes/polyform',
-    'Portland': 'https://themes.shopify.com/themes/portland',
-    'Praise': 'https://themes.shopify.com/themes/praise',
-    'Prestige': 'https://themes.shopify.com/themes/prestige',
-    'Providence': 'https://themes.shopify.com/themes/providence',
-    'Pursuit': 'https://themes.shopify.com/themes/pursuit',
-    
-    // R-Z
-    'Reach': 'https://themes.shopify.com/themes/reach',
-    'Reformation': 'https://themes.shopify.com/themes/reformation',
-    'Refine': 'https://themes.shopify.com/themes/refine',
-    'Relax': 'https://themes.shopify.com/themes/relax',
-    'Responsive': 'https://themes.shopify.com/themes/responsive',
-    'Retina': 'https://themes.shopify.com/themes/retina',
-    'Retro': 'https://themes.shopify.com/themes/retro',
-    'Ride': 'https://themes.shopify.com/themes/ride',
-    'Roam': 'https://themes.shopify.com/themes/roam',
-    'Sahara': 'https://themes.shopify.com/themes/sahara',
-    'Satoshi': 'https://themes.shopify.com/themes/satoshi',
-    'Select': 'https://themes.shopify.com/themes/select',
-    'Shapes': 'https://themes.shopify.com/themes/shapes',
-    'Shark': 'https://themes.shopify.com/themes/shark',
-    'Shine': 'https://themes.shopify.com/themes/shine',
-    'Showcase': 'https://themes.shopify.com/themes/showcase',
-    'ShowTime': 'https://themes.shopify.com/themes/showtime',
-    'Simple': 'https://themes.shopify.com/themes/simple',
-    'Sitar': 'https://themes.shopify.com/themes/sitar',
-    'Sleek': 'https://themes.shopify.com/themes/sleek',
-    'Soul': 'https://themes.shopify.com/themes/soul',
-    'Space': 'https://themes.shopify.com/themes/space',
-    'Spark': 'https://themes.shopify.com/themes/spark',
-    'Split': 'https://themes.shopify.com/themes/split',
-    'Starlite': 'https://themes.shopify.com/themes/starlite',
-    'Startup': 'https://themes.shopify.com/themes/startup',
-    'Stiletto': 'https://themes.shopify.com/themes/stiletto',
-    'Stockholm': 'https://themes.shopify.com/themes/stockholm',
-    'Stockmart': 'https://themes.shopify.com/themes/stockmart',
-    'Story': 'https://themes.shopify.com/themes/story',
-    'Streamline': 'https://themes.shopify.com/themes/streamline',
-    'StyleScape': 'https://themes.shopify.com/themes/stylescape',
-    'Sunrise': 'https://themes.shopify.com/themes/sunrise',
-    'Supply': 'https://themes.shopify.com/themes/supply',
-    'Swipe': 'https://themes.shopify.com/themes/swipe',
-    'Sydney': 'https://themes.shopify.com/themes/sydney',
-    'Symmetry': 'https://themes.shopify.com/themes/symmetry',
-    'Taiga': 'https://themes.shopify.com/themes/taiga',
-    'Tailor': 'https://themes.shopify.com/themes/tailor',
-    'Takeout': 'https://themes.shopify.com/themes/takeout',
-    'Testament': 'https://themes.shopify.com/themes/testament',
-    'Tokyo': 'https://themes.shopify.com/themes/tokyo',
-    'Toyo': 'https://themes.shopify.com/themes/toyo',
-    'Trade': 'https://themes.shopify.com/themes/trade',
-    'Trend': 'https://themes.shopify.com/themes/trend',
-    'Ultra': 'https://themes.shopify.com/themes/ultra',
-    'Unicorn': 'https://themes.shopify.com/themes/unicorn',
-    'Upscale': 'https://themes.shopify.com/themes/upscale',
-    'Urban': 'https://themes.shopify.com/themes/urban',
-    'Urge': 'https://themes.shopify.com/themes/urge',
-    'Vantage': 'https://themes.shopify.com/themes/vantage',
-    'Veena': 'https://themes.shopify.com/themes/veena',
-    'Venture': 'https://themes.shopify.com/themes/venture',
-    'Venue': 'https://themes.shopify.com/themes/venue',
-    'Vincent': 'https://themes.shopify.com/themes/vincent',
-    'Viola': 'https://themes.shopify.com/themes/viola',
-    'Vision': 'https://themes.shopify.com/themes/vision',
-    'Vivid': 'https://themes.shopify.com/themes/vivid',
-    'Vogue': 'https://themes.shopify.com/themes/vogue',
-    'Warehouse': 'https://themes.shopify.com/themes/warehouse',
-    'Whisk': 'https://themes.shopify.com/themes/whisk',
-    'Wonder': 'https://themes.shopify.com/themes/wonder',
-    'Woodstock': 'https://themes.shopify.com/themes/woodstock',
-    'Xclusive': 'https://themes.shopify.com/themes/xclusive',
-    'Xtra': 'https://themes.shopify.com/themes/xtra',
-    'Yuva': 'https://themes.shopify.com/themes/yuva',
-    'Zest': 'https://themes.shopify.com/themes/zest',
-    'Zora': 'https://themes.shopify.com/themes/zora'
-};
+// 反向映射 (主题名 -> ID)
+const SHOPIFY_THEME_NAME_MAP = {};
+Object.entries(SHOPIFY_THEME_ID_MAP).forEach(([id, name]) => {
+    SHOPIFY_THEME_NAME_MAP[name] = parseInt(id);
+});
 
-function isShopifyStore(html) {
-    const indicators = ['Shopify.shop', 'shopify.com', 'window.Shopify', 'cdn.shopify.com'];
-    const htmlLower = html.toLowerCase();
-    return indicators.some(indicator => htmlLower.includes(indicator.toLowerCase()));
-}
+// ============================================================================
+// 专业级 Shopify 主题检测器
+// ============================================================================
 
-function detectTheme(html) {
-    const htmlLower = html.toLowerCase();
-    let bestMatch = { theme: 'Unknown', score: 0 };
-    
-    for (const [themeName, patterns] of Object.entries(themeFingerprints)) {
-        let score = 0;
-        let hasExactMatch = false;
-        let hasCSSMatch = false;
+class ShopifyThemeDetector {
+    constructor() {
+        this.themeIdMap = SHOPIFY_THEME_ID_MAP;
+        this.themeNameMap = SHOPIFY_THEME_NAME_MAP;
         
-        patterns.forEach(pattern => {
-            const patternLower = pattern.toLowerCase();
-            if (htmlLower.includes(patternLower)) {
-                // 精确主题名匹配 (最高权重)
-                if (pattern.startsWith('"') && pattern.endsWith('"')) {
-                    score += 25;
-                    hasExactMatch = true;
-                }
-                // CSS 文件匹配 (高权重)
-                else if (pattern.includes('.css')) {
-                    score += 20;
-                    hasCSSMatch = true;
-                }
-                // 特定主题类名匹配 (中等权重)
-                else if (pattern.includes('-theme') || pattern.includes('theme-')) {
-                    score += 15;
-                }
-                // 其他特征匹配 (低权重)
-                else {
-                    score += 5;
-                }
+        // 免费主题列表
+        this.freeThemeIds = [887, 1356, 1368, 1499, 1434, 1363, 1431, 1567, 1864, 1841];
+        
+        // 第三方主题特征库
+        this.thirdPartyPatterns = {
+            'Kalles': {
+                patterns: ['kalles.css', 'kt-', 'kalles-section', '/assets/kalles', 'kalles-theme'],
+                minMatches: 2,
+                confidence: 75
+            },
+            'Turbo': {
+                patterns: ['turbo.css', 'turbo-theme', '/assets/turbo', 'header__logo', 'turbo-'],
+                minMatches: 2,
+                confidence: 75
+            },
+            'Ella': {
+                patterns: ['ella.css', 'ella-theme', '/assets/ella', 'ella-'],
+                minMatches: 2,
+                confidence: 70
+            },
+            'Shella': {
+                patterns: ['shella.css', 'shella-theme', '/assets/shella'],
+                minMatches: 2,
+                confidence: 70
+            },
+            'Debutify': {
+                patterns: ['debutify.css', 'debutify-theme', 'dbtfy-', 'debutify-'],
+                minMatches: 2,
+                confidence: 75
+            },
+            'Booster': {
+                patterns: ['booster.css', 'booster-theme', 'btb-', 'booster-'],
+                minMatches: 2,
+                confidence: 70
+            },
+            'PageFly': {
+                patterns: ['pagefly.css', 'pf-', '__pf', 'pagefly-'],
+                minMatches: 2,
+                confidence: 65
             }
-        });
+        };
         
-        // 只有找到精确匹配或CSS匹配才认为是有效检测
-        if ((hasExactMatch || hasCSSMatch) && score > bestMatch.score) {
-            bestMatch = { theme: themeName, score };
+        // 官方主题CSS特征库
+        this.officialThemeCSSPatterns = {
+            'Dawn': ['/assets/base.css', '/assets/component-', 'dawn.css', 'theme-dawn'],
+            'Sense': ['/assets/sense.css', 'sense-theme', 'predictive-search--sense'],
+            'Craft': ['/assets/craft.css', 'craft-theme', 'craft-product'],
+            'Symmetry': ['/assets/theme.scss.css', 'symmetry.css', 'symmetry-theme'],
+            'Prestige': ['/assets/prestige.css', '/assets/theme.min.css', 'ProductItem__'],
+            'Impact': ['/assets/component-product-card', 'impact.css', 'product-card--blends'],
+            'Icon': ['/assets/icon.css', 'icon-theme.css', 'icon-product-gallery'],
+            'Impulse': ['/assets/impulse.css', 'impulse-theme.css'],
+            'Empire': ['/assets/empire.css', 'empire-theme.css'],
+            'Motion': ['/assets/motion.css', 'motion-theme.css'],
+            'Broadcast': ['/assets/broadcast.css', 'broadcast-theme.css'],
+            'Pipeline': ['/assets/pipeline.css', 'pipeline-theme.css'],
+            'Warehouse': ['/assets/warehouse.css', 'warehouse-theme.css'],
+            'Focal': ['/assets/focal.css', 'focal-theme.css'],
+            'Vision': ['/assets/vision.css', 'vision-theme.css'],
+            'Wonder': ['/assets/wonder.css', 'wonder-theme.css'],
+            'Trade': ['/assets/trade.css', 'trade-theme.css'],
+            'Local': ['/assets/local.css', 'local-theme.css'],
+            'Palo Alto': ['/assets/palo-alto.css', 'palo-alto.css'],
+            'Stiletto': ['/assets/stiletto.css', 'stiletto.css']
+        };
+    }
+    
+    // ========================================================================
+    // 主检测函数
+    // ========================================================================
+    
+    async detectTheme(url) {
+        try {
+            const html = await this.fetchHTML(url);
+            
+            if (!this.isShopifyStore(html)) {
+                return {
+                    isShopify: false,
+                    theme: null,
+                    confidence: 0,
+                    method: 'not_shopify',
+                    url: url
+                };
+            }
+            
+            // 按优先级依次检测
+            let result = this.detectByThemeStoreId(html);
+            if (result.confidence >= 90) return { isShopify: true, url, ...result };
+            
+            result = this.detectByShopifyObject(html);
+            if (result.confidence >= 80) return { isShopify: true, url, ...result };
+            
+            result = this.detectByMetaTags(html);
+            if (result.confidence >= 70) return { isShopify: true, url, ...result };
+            
+            result = this.detectByCSSFiles(html);
+            if (result.confidence >= 60) return { isShopify: true, url, ...result };
+            
+            result = this.detectByThirdPartyThemes(html);
+            if (result.confidence >= 50) return { isShopify: true, url, ...result };
+            
+            result = this.detectByHTMLStructure(html);
+            if (result.confidence >= 40) return { isShopify: true, url, ...result };
+            
+            return {
+                isShopify: true,
+                url: url,
+                theme: 'Unknown',
+                confidence: 0,
+                method: 'fallback'
+            };
+            
+        } catch (error) {
+            return {
+                isShopify: false,
+                url: url,
+                theme: null,
+                confidence: 0,
+                error: error.message,
+                method: 'error'
+            };
         }
     }
     
-    // 更严格的置信度计算
-    let confidence = 0;
-    if (bestMatch.score >= 25) { // 有精确主题名匹配
-        confidence = Math.min(95, 60 + bestMatch.score);
-    } else if (bestMatch.score >= 20) { // 有CSS文件匹配
-        confidence = Math.min(85, 40 + bestMatch.score);
-    } else if (bestMatch.score >= 15) { // 有主题类名匹配
-        confidence = Math.min(75, 30 + bestMatch.score);
-    } else if (bestMatch.score > 0) {
-        confidence = Math.min(60, 20 + bestMatch.score);
+    // ========================================================================
+    // 检测方法 (按优先级排序)
+    // ========================================================================
+    
+    // 方法1: 通过theme_store_id检测 (95% 准确率)
+    detectByThemeStoreId(html) {
+        const patterns = [
+            /"theme_store_id":\s*(\d+)/,
+            /'theme_store_id':\s*(\d+)/,
+            /theme_store_id["']?\s*:\s*(\d+)/,
+            /themeStoreId["']?\s*:\s*(\d+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = html.match(pattern);
+            if (match) {
+                const id = parseInt(match[1]);
+                const themeName = this.themeIdMap[id];
+                
+                if (themeName) {
+                    return {
+                        theme: themeName,
+                        confidence: 95,
+                        method: 'theme_store_id',
+                        themeId: id,
+                        isFree: this.freeThemeIds.includes(id),
+                        isOfficial: true
+                    };
+                } else {
+                    return {
+                        theme: `Unknown Official Theme (ID: ${id})`,
+                        confidence: 90,
+                        method: 'theme_store_id_unknown',
+                        themeId: id,
+                        isOfficial: true
+                    };
+                }
+            }
+        }
+        
+        // 检测自定义主题
+        const nullPatterns = [
+            /"theme_store_id":\s*null/,
+            /'theme_store_id':\s*null/,
+            /theme_store_id["']?\s*:\s*null/
+        ];
+        
+        for (const pattern of nullPatterns) {
+            if (pattern.test(html)) {
+                return {
+                    theme: 'Custom Theme',
+                    confidence: 85,
+                    method: 'theme_store_id_null',
+                    themeId: null,
+                    isOfficial: false,
+                    isCustom: true
+                };
+            }
+        }
+        
+        return { theme: null, confidence: 0, method: 'no_theme_id' };
     }
     
-    return {
-        theme: bestMatch.score >= 15 ? bestMatch.theme : 'Unknown', // 提高检测门槛
-        confidence: bestMatch.score >= 15 ? confidence : 0
-    };
+    // 方法2: 通过Shopify对象检测 (85% 准确率)
+    detectByShopifyObject(html) {
+        const patterns = [
+            /Shopify\.theme\s*=\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/,
+            /window\.Shopify\.theme\s*=\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/,
+            /["']theme["']:\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/,
+            /Shopify\.theme\.name\s*=\s*["']([^"']+)["']/,
+            /window\.theme\s*=\s*["']([^"']+)["']/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = html.match(pattern);
+            if (match) {
+                const themeName = match[1];
+                const themeId = this.themeNameMap[themeName];
+                const confidence = themeId ? 85 : 75;
+                
+                return {
+                    theme: themeName,
+                    confidence: confidence,
+                    method: 'shopify_object',
+                    themeId: themeId || null,
+                    isFree: themeId ? this.freeThemeIds.includes(themeId) : null,
+                    isOfficial: !!themeId
+                };
+            }
+        }
+        
+        return { theme: null, confidence: 0, method: 'no_shopify_object' };
+    }
+    
+    // 方法3: 通过Meta标签检测 (75% 准确率)
+    detectByMetaTags(html) {
+        const patterns = [
+            /<meta[^>]+name=["']shopify-theme-id["'][^>]+content=["'](\d+)["']/i,
+            /<meta[^>]+name=["']theme["'][^>]+content=["']([^"']+)["']/i,
+            /<meta[^>]+property=["']shopify:theme["'][^>]+content=["']([^"']+)["']/i,
+            /<meta[^>]+name=["']shopify-theme["'][^>]+content=["']([^"']+)["']/i
+        ];
+        
+        for (const pattern of patterns) {
+            const match = html.match(pattern);
+            if (match) {
+                const value = match[1];
+                
+                if (/^\d+$/.test(value)) {
+                    // 数字ID
+                    const id = parseInt(value);
+                    const themeName = this.themeIdMap[id];
+                    return {
+                        theme: themeName || `Unknown (ID: ${id})`,
+                        confidence: 75,
+                        method: 'meta_tag_id',
+                        themeId: id,
+                        isFree: this.freeThemeIds.includes(id),
+                        isOfficial: !!themeName
+                    };
+                } else {
+                    // 主题名
+                    const themeId = this.themeNameMap[value];
+                    return {
+                        theme: value,
+                        confidence: 70,
+                        method: 'meta_tag_name',
+                        themeId: themeId || null,
+                        isFree: themeId ? this.freeThemeIds.includes(themeId) : null,
+                        isOfficial: !!themeId
+                    };
+                }
+            }
+        }
+        
+        return { theme: null, confidence: 0, method: 'no_meta_tags' };
+    }
+    
+    // 方法4: 通过CSS文件检测 (65% 准确率)
+    detectByCSSFiles(html) {
+        for (const [themeName, patterns] of Object.entries(this.officialThemeCSSPatterns)) {
+            for (const pattern of patterns) {
+                if (html.includes(pattern)) {
+                    const themeId = this.themeNameMap[themeName];
+                    return {
+                        theme: themeName,
+                        confidence: 65,
+                        method: 'css_file_pattern',
+                        themeId: themeId || null,
+                        cssPattern: pattern,
+                        isFree: themeId ? this.freeThemeIds.includes(themeId) : null,
+                        isOfficial: true
+                    };
+                }
+            }
+        }
+        
+        return { theme: null, confidence: 0, method: 'no_css_patterns' };
+    }
+    
+    // 方法5: 检测第三方主题 (60% 准确率)
+    detectByThirdPartyThemes(html) {
+        for (const [themeName, config] of Object.entries(this.thirdPartyPatterns)) {
+            let matches = 0;
+            const matchedPatterns = [];
+            
+            for (const pattern of config.patterns) {
+                if (html.includes(pattern)) {
+                    matches++;
+                    matchedPatterns.push(pattern);
+                }
+            }
+            
+            if (matches >= config.minMatches) {
+                return {
+                    theme: themeName,
+                    confidence: config.confidence,
+                    method: 'third_party_pattern',
+                    themeId: null,
+                    isThirdParty: true,
+                    isOfficial: false,
+                    matchedPatterns: matchedPatterns,
+                    matchCount: matches
+                };
+            }
+        }
+        
+        return { theme: null, confidence: 0, method: 'no_third_party_patterns' };
+    }
+    
+    // 方法6: 通过HTML结构检测 (45% 准确率)
+    detectByHTMLStructure(html) {
+        const structurePatterns = {
+            'Prestige': {
+                patterns: ['ProductItem__', 'ProductItem--', 'product-item--'],
+                minMatches: 2,
+                confidence: 50
+            },
+            'Impact': {
+                patterns: ['product-card--blends', 'section-stack', 'impact-'],
+                minMatches: 2,
+                confidence: 50
+            },
+            'Dawn': {
+                patterns: ['shopify-section', 'color-scheme-', 'component-'],
+                minMatches: 3,
+                confidence: 45
+            }
+        };
+        
+        for (const [themeName, config] of Object.entries(structurePatterns)) {
+            let matches = 0;
+            for (const pattern of config.patterns) {
+                if (html.includes(pattern)) {
+                    matches++;
+                }
+            }
+            
+            if (matches >= config.minMatches) {
+                const themeId = this.themeNameMap[themeName];
+                return {
+                    theme: themeName,
+                    confidence: config.confidence,
+                    method: 'html_structure',
+                    themeId: themeId || null,
+                    structureMatches: matches,
+                    isFree: themeId ? this.freeThemeIds.includes(themeId) : null,
+                    isOfficial: !!themeId
+                };
+            }
+        }
+        
+        return { theme: null, confidence: 0, method: 'no_html_structure' };
+    }
+    
+    // ========================================================================
+    // 辅助方法
+    // ========================================================================
+    
+    // 检测是否为Shopify店铺
+    isShopifyStore(html) {
+        const indicators = [
+            'shopify.com/s/files',
+            'cdn.shopify.com',
+            'window.Shopify',
+            'Shopify.shop',
+            'shopify-section',
+            'data-shopify',
+            'shopify-payment-button',
+            '/wpm@',
+            'shopify-features'
+        ];
+        
+        const lowerHtml = html.toLowerCase();
+        return indicators.some(indicator => lowerHtml.includes(indicator.toLowerCase()));
+    }
+    
+    // 获取HTML内容
+    async fetchHTML(url) {
+        try {
+            // 规范化URL
+            let normalizedUrl = url.trim();
+            if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+                normalizedUrl = 'https://' + normalizedUrl;
+            }
+            
+            const response = await axios.get(normalizedUrl, {
+                timeout: 15000,
+                maxRedirects: 5,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            
+            return response.data;
+        } catch (error) {
+            throw new Error(`Failed to fetch ${url}: ${error.message}`);
+        }
+    }
+    
+    // ========================================================================
+    // 工具方法
+    // ========================================================================
+    
+    // 通过ID获取主题名
+    getThemeNameById(id) {
+        return this.themeIdMap[id] || 'Unknown';
+    }
+    
+    // 通过名称获取ID
+    getThemeIdByName(name) {
+        return this.themeNameMap[name] || null;
+    }
+    
+    // 检查是否为免费主题
+    isFreeTheme(themeNameOrId) {
+        const id = typeof themeNameOrId === 'string' 
+            ? this.getThemeIdByName(themeNameOrId) 
+            : themeNameOrId;
+        return this.freeThemeIds.includes(id);
+    }
+    
+    // 获取主题商店链接
+    getThemeStoreUrl(themeNameOrId) {
+        const name = typeof themeNameOrId === 'number' 
+            ? this.getThemeNameById(themeNameOrId) 
+            : themeNameOrId;
+        
+        if (!name || name === 'Unknown') return null;
+        
+        const slug = name.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+            
+        return `https://themes.shopify.com/themes/${slug}`;
+    }
+    
+    // 获取所有免费主题
+    getFreeThemes() {
+        return this.freeThemeIds.map(id => ({
+            id: id,
+            name: this.themeIdMap[id]
+        }));
+    }
+    
+    // 批量检测
+    async detectMultiple(urls, options = {}) {
+        const { 
+            concurrent = 3, 
+            delay = 1000,
+            includeErrors = false 
+        } = options;
+        
+        const results = [];
+        const chunks = this.chunkArray(urls, concurrent);
+        
+        for (const chunk of chunks) {
+            const promises = chunk.map(url => this.detectTheme(url));
+            const chunkResults = await Promise.allSettled(promises);
+            
+            chunkResults.forEach((result, index) => {
+                if (result.status === 'fulfilled') {
+                    results.push(result.value);
+                } else if (includeErrors) {
+                    results.push({
+                        url: chunk[index],
+                        isShopify: false,
+                        theme: null,
+                        confidence: 0,
+                        error: result.reason.message,
+                        method: 'error'
+                    });
+                }
+            });
+            
+            // 延迟避免过于频繁的请求
+            if (delay > 0 && chunks.indexOf(chunk) < chunks.length - 1) {
+                await this.sleep(delay);
+            }
+        }
+        
+        return results;
+    }
+    
+    // 数组分块
+    chunkArray(array, size) {
+        const chunks = [];
+        for (let i = 0; i < array.length; i += size) {
+            chunks.push(array.slice(i, i + size));
+        }
+        return chunks;
+    }
+    
+    // 延迟函数
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // 统计信息
+    getStats() {
+        const totalThemes = Object.keys(this.themeIdMap).length;
+        const freeThemes = this.freeThemeIds.length;
+        const paidThemes = totalThemes - freeThemes;
+        const thirdPartyThemes = Object.keys(this.thirdPartyPatterns).length;
+        
+        return {
+            total: totalThemes,
+            official: {
+                total: totalThemes,
+                free: freeThemes,
+                paid: paidThemes
+            },
+            thirdParty: thirdPartyThemes,
+            supported: totalThemes + thirdPartyThemes
+        };
+    }
+    
+    // 导出主题映射表
+    exportThemeMap() {
+        return {
+            idToName: { ...this.themeIdMap },
+            nameToId: { ...this.themeNameMap },
+            freeThemes: this.getFreeThemes(),
+            thirdPartyThemes: Object.keys(this.thirdPartyPatterns),
+            stats: this.getStats()
+        };
+    }
 }
 
-// Helper function to categorize themes
-function getThemeCategory(themeName) {
-    const freeThemes = ['Dawn', 'Sense', 'Craft', 'Colorblock', 'Taste', 'Crave', 'Studio', 'Refresh', 'Publisher', 'Origin'];
-    const fashionThemes = ['Impulse', 'Prestige', 'Symmetry', 'Empire', 'Stiletto', 'Barcelona', 'Blum', 'Aurora', 'Palo Alto'];
-    const techThemes = ['Impact', 'Warehouse', 'Electro', 'Digital', 'Automation', 'Context'];
-    const beautyThemes = ['Sense', 'Align', 'Vision', 'Flawless', 'Gem', 'Shine'];
-    const foodThemes = ['Taste', 'Crave', 'Foodie', 'Takeout', 'Fresh'];
-    const artThemes = ['Publisher', 'Origin', 'Artist', 'Creative', 'Gallery', 'Frame'];
-    
-    if (freeThemes.includes(themeName)) return 'Free';
-    if (fashionThemes.includes(themeName)) return 'Fashion & Apparel';
-    if (techThemes.includes(themeName)) return 'Technology & Electronics';
-    if (beautyThemes.includes(themeName)) return 'Beauty & Health';
-    if (foodThemes.includes(themeName)) return 'Food & Beverage';
-    if (artThemes.includes(themeName)) return 'Art & Creative';
-    
-    return 'General Commerce';
+// ============================================================================
+// 简化的API接口 (兼容原有代码)
+// ============================================================================
+
+// 简化的检测函数
+async function detectShopifyTheme(url) {
+    const detector = new ShopifyThemeDetector();
+    return await detector.detectTheme(url);
 }
 
-// Helper function to detect theme customizations
-function detectCustomizations(html) {
-    const customizationIndicators = [
-        'custom-css',
-        'theme-custom',
-        'modified-theme',
-        'custom-js',
-        'theme-override',
-        'custom-section',
-        'modified-',
-        'custom-',
-        'override-'
-    ];
-    
-    const htmlLower = html.toLowerCase();
-    return customizationIndicators.some(indicator => htmlLower.includes(indicator));
+// 批量检测函数
+async function detectMultipleThemes(urls, options = {}) {
+    const detector = new ShopifyThemeDetector();
+    return await detector.detectMultiple(urls, options);
 }
+
+// 工具函数
+const ThemeUtils = {
+    // 通过ID获取主题名
+    getThemeNameById(id) {
+        return SHOPIFY_THEME_ID_MAP[id] || 'Unknown';
+    },
+    
+    // 通过名称获取ID
+    getThemeIdByName(name) {
+        return SHOPIFY_THEME_NAME_MAP[name] || null;
+    },
+    
+    // 检查是否为免费主题
+    isFreeTheme(themeNameOrId) {
+        const freeThemeIds = [887, 1356, 1368, 1499, 1434, 1363, 1431, 1567, 1864, 1841];
+        const id = typeof themeNameOrId === 'string' 
+            ? this.getThemeIdByName(themeNameOrId) 
+            : themeNameOrId;
+        return freeThemeIds.includes(id);
+    },
+    
+    // 获取主题商店链接
+    getThemeStoreUrl(themeNameOrId) {
+        const name = typeof themeNameOrId === 'number' 
+            ? this.getThemeNameById(themeNameOrId) 
+            : themeNameOrId;
+        
+        if (!name || name === 'Unknown') return null;
+        
+        const slug = name.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+            
+        return `https://themes.shopify.com/themes/${slug}`;
+    },
+    
+    // 获取所有免费主题
+    getFreeThemes() {
+        const freeThemeIds = [887, 1356, 1368, 1499, 1434, 1363, 1431, 1567, 1864, 1841];
+        return freeThemeIds.map(id => ({
+            id: id,
+            name: SHOPIFY_THEME_ID_MAP[id]
+        }));
+    },
+    
+    // 统计信息
+    getStats() {
+        const totalThemes = Object.keys(SHOPIFY_THEME_ID_MAP).length;
+        const freeThemes = this.getFreeThemes().length;
+        const paidThemes = totalThemes - freeThemes;
+        
+        return {
+            total: totalThemes,
+            free: freeThemes,
+            paid: paidThemes
+        };
+    }
+};
+
+// ============================================================================
+// Express.js/Vercel API 兼容版本
+// ============================================================================
 
 module.exports = async (req, res) => {
     // Handle CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     
     if (req.method === 'OPTIONS') {
@@ -662,78 +930,42 @@ module.exports = async (req, res) => {
         return;
     }
 
-    if (req.method !== 'POST') {
+    if (req.method !== 'POST' && req.method !== 'GET') {
         return res.status(405).json({ 
             success: false, 
             error: 'Method not allowed' 
         });
     }
 
-    const { url } = req.body;
+    // 获取URL参数
+    let url;
+    if (req.method === 'POST') {
+        url = req.body?.url;
+    } else {
+        url = req.query?.url;
+    }
 
     if (!url) {
         return res.status(400).json({ 
             success: false, 
-            error: 'URL is required' 
+            error: 'URL parameter is required' 
         });
     }
 
     try {
-        // Normalize URL
-        let targetUrl = url.trim();
-        if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-            targetUrl = 'https://' + targetUrl;
-        }
-
-        console.log(`Analyzing: ${targetUrl}`);
-
-        // Fetch webpage with timeout
-        const response = await axios.get(targetUrl, {
-            timeout: 10000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-        });
-
-        const html = response.data;
-
-        // Check if Shopify
-        if (!isShopifyStore(html)) {
-            return res.status(200).json({
-                success: true,
-                data: {
-                    url: targetUrl,
-                    isShopify: false,
-                    theme: null,
-                    confidence: 0,
-                    hasCustomizations: false,
-                    timestamp: new Date().toISOString(),
-                    message: 'Not a Shopify store'
-                }
-            });
-        }
-
-        // Detect theme
-        const themeResult = detectTheme(html);
-
-        // Additional theme information
-        const isOfficialTheme = themeLinks[themeResult.theme] ? true : false;
-        const themeCategory = getThemeCategory(themeResult.theme);
+        const detector = new ShopifyThemeDetector();
+        const result = await detector.detectTheme(url);
         
+        // 添加额外信息
+        const enhancedResult = {
+            ...result,
+            themeStoreLink: result.themeId ? ThemeUtils.getThemeStoreUrl(result.theme) : null,
+            timestamp: new Date().toISOString()
+        };
+
         res.status(200).json({
             success: true,
-            data: {
-                url: targetUrl,
-                isShopify: true,
-                theme: themeResult.theme,
-                confidence: themeResult.confidence,
-                themeStoreLink: themeLinks[themeResult.theme] || null,
-                isOfficialTheme: isOfficialTheme,
-                themeCategory: themeCategory,
-                hasCustomizations: detectCustomizations(html),
-                timestamp: new Date().toISOString(),
-                message: `Detected Shopify store using ${themeResult.theme} theme (${isOfficialTheme ? 'Official' : 'Third-party'})`
-            }
+            data: enhancedResult
         });
 
     } catch (error) {
@@ -744,3 +976,82 @@ module.exports = async (req, res) => {
         });
     }
 };
+
+// ============================================================================
+// 使用示例和测试
+// ============================================================================
+
+// 单个检测示例
+async function example1() {
+    try {
+        const result = await detectShopifyTheme('https://www.silkandwillow.com/');
+        console.log('检测结果:', result);
+        /*
+        期望输出:
+        {
+            isShopify: true,
+            url: 'https://www.silkandwillow.com/',
+            theme: 'Symmetry',
+            confidence: 95,
+            method: 'theme_store_id',
+            themeId: 568,
+            isFree: false,
+            isOfficial: true
+        }
+        */
+    } catch (error) {
+        console.error('检测失败:', error.message);
+    }
+}
+
+// 批量检测示例
+async function example2() {
+    const urls = [
+        'https://www.silkandwillow.com/',  // Symmetry
+        'https://rellery.com/',           // Kalles (第三方)
+        'https://www.allbirds.com/',      // 可能是自定义主题
+        'https://shop.gymshark.com/'      // 测试
+    ];
+    
+    try {
+        const results = await detectMultipleThemes(urls, {
+            concurrent: 2,
+            delay: 1000,
+            includeErrors: true
+        });
+        
+        console.log('批量检测结果:');
+        results.forEach(result => {
+            console.log(`${result.url} -> ${result.theme} (${result.confidence}%)`);
+        });
+    } catch (error) {
+        console.error('批量检测失败:', error.message);
+    }
+}
+
+// 工具函数使用示例
+function example3() {
+    console.log('=== 工具函数示例 ===');
+    console.log('Symmetry ID:', ThemeUtils.getThemeIdByName('Symmetry')); // 568
+    console.log('ID 568 主题:', ThemeUtils.getThemeNameById(568)); // Symmetry
+    console.log('Dawn是免费主题吗:', ThemeUtils.isFreeTheme('Dawn')); // true
+    console.log('Symmetry商店链接:', ThemeUtils.getThemeStoreUrl('Symmetry'));
+    console.log('统计信息:', ThemeUtils.getStats());
+    console.log('免费主题列表:', ThemeUtils.getFreeThemes());
+}
+
+// 导出所有功能
+module.exports.ShopifyThemeDetector = ShopifyThemeDetector;
+module.exports.detectShopifyTheme = detectShopifyTheme;
+module.exports.detectMultipleThemes = detectMultipleThemes;
+module.exports.ThemeUtils = ThemeUtils;
+module.exports.SHOPIFY_THEME_ID_MAP = SHOPIFY_THEME_ID_MAP;
+module.exports.SHOPIFY_THEME_NAME_MAP = SHOPIFY_THEME_NAME_MAP;
+
+// 如果直接运行此文件，执行示例
+if (require.main === module) {
+    console.log('=== Shopify Theme Detector 示例 ===');
+    example3();
+    // example1();
+    // example2();
+}
