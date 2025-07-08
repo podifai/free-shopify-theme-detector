@@ -16,7 +16,7 @@ const themeFingerprints = {
     
     // Premium Themes - 使用更精确的CSS类名和JS标识
     'Symmetry': ['"Symmetry"', 'symmetry.css', 'symmetry-theme', 'symmetry-product-grid', 'symmetry-collection', 'theme-symmetry'],
-    'Icon': ['"Icon"', 'icon.css', 'icon-theme', 'icon-product-gallery', 'icon-slideshow', 'theme-icon'],
+    'Icon': ['icon.css', 'icon-theme', 'icon-product-gallery', 'icon-slideshow', 'theme-icon'],
     'Prestige': ['"Prestige"', 'prestige.css', 'ProductItem__', 'prestige--v4', 'prestige-theme'],
     'Impact': ['"Impact"', 'impact.css', 'product-card--blends', 'section-stack', 'impact-theme'],
     'Impulse': ['"Impulse"', 'impulse.css', 'impulse-theme', 'impulse-product'],
