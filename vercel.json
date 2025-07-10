@@ -1,53 +1,50 @@
-{
-  "version": 2,
-  "functions": {
-    "api/detect.js": {
-      "maxDuration": 30,
-      "memory": 1024
+  {
+    "version": 2,
+    "functions": {
+      "api/detect.js": {
+        "maxDuration": 30,
+        "memory": 1024
+      }
     },
-    "enhanced-shopify-theme-detector.js": {
-      "maxDuration": 30,
-      "memory": 1024
-    }
-  },
-  "routes": [
-    {
-      "src": "/api/detect",
-      "dest": "/api/detect.js",
-      "methods": ["GET", "POST", "OPTIONS"]
-    },
-    {
-      "src": "/detect",
-      "dest": "/api/detect.js",
-      "methods": ["GET", "POST", "OPTIONS"]
-    },
-    {
-      "src": "/api/enhanced",
-      "dest": "/api/detect.js",
-      "methods": ["GET", "POST", "OPTIONS"]
-    }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { 
-          "key": "Access-Control-Allow-Origin", 
-          "value": "*" 
-        },
-        { 
-          "key": "Access-Control-Allow-Methods", 
-          "value": "GET, POST, PUT, DELETE, OPTIONS" 
-        },
-        { 
-          "key": "Access-Control-Allow-Headers", 
-          "value": "X-Requested-With, Content-Type, Accept, Authorization, X-CSRF-Token, X-Api-Version" 
-        },
-        { 
-          "key": "Access-Control-Max-Age", 
-          "value": "86400" 
-        }
-      ]
-    }
-  ]
-}
+    "routes": [
+      {
+        "src": "/api/detect",
+        "dest": "/api/detect.js",
+        "methods": ["GET", "POST", "OPTIONS"]
+      },
+      {
+        "src": "/detect",
+        "dest": "/api/detect.js",
+        "methods": ["GET", "POST", "OPTIONS"]
+      },
+      {
+        "src": "/api/enhanced",
+        "dest": "/api/detect.js",
+        "methods": ["GET", "POST", "OPTIONS"]
+      }
+    ],
+    "headers": [
+      {
+        "source": "/api/(.*)",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          },
+          {
+            "key": "Access-Control-Allow-Methods",
+            "value": "GET, POST, PUT, DELETE, OPTIONS"
+          },
+          {
+            "key": "Access-Control-Allow-Headers",
+            "value": "X-Requested-With, Content-Type, Accept, 
+  Authorization, X-CSRF-Token, X-Api-Version"
+          },
+          {
+            "key": "Access-Control-Max-Age",
+            "value": "86400"
+          }
+        ]
+      }
+    ]
+  }
