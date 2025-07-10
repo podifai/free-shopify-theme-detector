@@ -13,17 +13,17 @@
   "routes": [
     {
       "src": "/api/detect",
-      "dest": "/enhanced-shopify-theme-detector.js",
+      "dest": "/api/detect.js",
       "methods": ["GET", "POST", "OPTIONS"]
     },
     {
       "src": "/detect",
-      "dest": "/enhanced-shopify-theme-detector.js",
+      "dest": "/api/detect.js",
       "methods": ["GET", "POST", "OPTIONS"]
     },
     {
       "src": "/api/enhanced",
-      "dest": "/enhanced-shopify-theme-detector.js",
+      "dest": "/api/detect.js",
       "methods": ["GET", "POST", "OPTIONS"]
     }
   ],
