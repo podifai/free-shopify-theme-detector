@@ -1,9 +1,7 @@
 {
     "name": "shopify-theme-detector",
     "version": "2.0.0",
-    "description": "A powerful tool to detect Shopify themes from website 
-  URLs. Perfect for DTC sellers, agencies, and developers who want to 
-  identify what theme a Shopify store is using.",
+    "description": "A powerful tool to detect Shopify themes from website URLs. Perfect for DTC sellers, agencies, and developers who want to identify what theme a Shopify store is using.",
     "main": "api/detect.js",
     "scripts": {
       "test": "node tests/test-v2.js",
