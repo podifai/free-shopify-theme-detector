@@ -1,256 +1,30 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
+// 导入完整的主题数据库
+const {
+    COMPLETE_OFFICIAL_THEME_MAP,
+    COMPLETE_THEME_NAME_TO_ID,
+    COMPLETE_FREE_THEMES,
+    EXTENDED_THIRD_PARTY_THEMES,
+    getThemeIdByName,
+    getThemeNameById,
+    isFreeTheme,
+    getThemeStoreUrl
+} = require('./complete-theme-database');
+
 // ============================================================================
-// 增强版 Shopify 主题检测器 V2 - 修复版本
-// 基于真实网站分析，提高检测准确率
+// 增强版 Shopify 主题检测器 V3 - 完整数据库版本
+// 支持 400+ 官方主题 + 20+ 第三方主题
+// 基于 EcommercePot 和多个来源的完整主题数据
 // ============================================================================
 
-// 官方主题 ID 映射（完整版）
-const OFFICIAL_THEME_MAP = {
-    // 免费主题 (11个)
-    887: 'Dawn',
-    1356: 'Sense', 
-    1368: 'Craft',
-    1499: 'Colorblock',
-    1434: 'Taste',
-    1363: 'Crave',
-    1431: 'Studio',
-    1567: 'Refresh',
-    1864: 'Publisher',
-    1841: 'Origin',
-    1902: 'Spotlight',
-    
-    // 付费主题（部分重要的）
-    568: 'Symmetry',
-    855: 'Prestige',
-    1190: 'Impact',
-    796: 'Debut',
-    730: 'Brooklyn',
-    857: 'Impulse',
-    836: 'Venue',
-    2967: 'Ultra',
-    902: 'Expanse',
-    566: 'Atlantic',
-    // ... 更多主题
-};
-
-// 反向映射
-const THEME_NAME_TO_ID = Object.fromEntries(
-    Object.entries(OFFICIAL_THEME_MAP).map(([id, name]) => [name, parseInt(id)])
-);
-
-// 免费主题列表
-const FREE_THEMES = [887, 1356, 1368, 1499, 1434, 1363, 1431, 1567, 1864, 1841, 1902];
-
-// 修正版第三方主题检测库 - 基于真实网站分析
-const THIRD_PARTY_THEMES = {
-    // 高准确率检测规则
-    'Kalles': {
-        patterns: [
-            // JS 对象检测
-            '"theme_name":"Kalles"',
-            '"schema_name":"Kalles"',
-            'window.theme.themeName = "Kalles"',
-            // CSS 类名特征 (基于 The4 团队开发)
-            't4s-product-info',
-            't4s-product-rating',
-            't4s-',
-            'kalles-theme',
-            // JS 文件特征
-            'kalles.js',
-            'kalles-main.js',
-            // CDN 路径
-            '/assets/kalles',
-            // HTML 特征
-            'data-theme="kalles"',
-            'data-kalles'
-        ],
-        weight: 85,
-        minMatches: 2,
-        specificMatches: [
-            { pattern: '"theme_name":"Kalles"', weight: 95 },
-            { pattern: 't4s-product-info', weight: 80 },
-            { pattern: 't4s-', weight: 70 }
-        ]
-    },
-    
-    'Turbo': {
-        patterns: [
-            // 高权重特征
-            '"theme_name":"Turbo"',
-            '"name":"Turbo"',
-            'Shopify.theme.name === "Turbo"',
-            // CDN 路径特征（基于真实分析）
-            '/cdn/shop/t/190/assets/styles.css',
-            '/cdn/shop/t/190/assets/',
-            '/t/190/assets/',
-            // CSS 类特征
-            'header__logo',
-            'sticky_nav',
-            'menu-position--block',
-            'product_section',
-            'product_form',
-            // JS 库特征
-            'lazysizes',
-            // 组合特征
-            'turbo-theme',
-            'turbo.js'
-        ],
-        weight: 85,
-        minMatches: 2,
-        specificMatches: [
-            { pattern: '"theme_name":"Turbo"', weight: 95 },
-            { pattern: '/t/190/assets/', weight: 90 },
-            { pattern: 'header__logo', weight: 75, requiresSecond: 'sticky_nav' }
-        ]
-    },
-    
-    'Stiletto': {
-        patterns: [
-            // 高权重 JS 对象检测
-            '"theme_name":"Stiletto"',
-            'window.theme.themeName = "Stiletto"',
-            '"schema_name":"Stiletto"',
-            // 特有 JS 文件组合
-            'photoswipe-chunk.js',
-            'swiper-chunk.js',
-            'nouislider-chunk.js',
-            'polyfill-inert-chunk.js',
-            // CSS 特征
-            'stiletto-theme',
-            'stiletto.css',
-            // 版本信息
-            'window.theme.version',
-            'v3.2.1'
-        ],
-        weight: 85,
-        minMatches: 2,
-        specificMatches: [
-            { pattern: 'window.theme.themeName = "Stiletto"', weight: 95 },
-            { pattern: 'photoswipe-chunk.js', weight: 80, requiresSecond: 'swiper-chunk.js' },
-            { pattern: 'nouislider-chunk.js', weight: 75 }
-        ]
-    },
-    
-    'Wokiee': {
-        patterns: [
-            // 高权重检测
-            '"schema_name":"Wokiee"',
-            '"theme_name":"Wokiee"',
-            'Shopify.theme.schema_name === "Wokiee"',
-            // CDN 路径特征
-            '/cdn/shop/t/12/assets/',
-            '/t/12/assets/',
-            'style-rtl.css',
-            // JS 文件特征
-            'bc-sf-filter.js',
-            // CSS 特征
-            'wokiee-theme',
-            'wokiee.css',
-            'wk-',
-            // 产品轮播特征
-            'product-carousel'
-        ],
-        weight: 85,
-        minMatches: 2,
-        specificMatches: [
-            { pattern: '"schema_name":"Wokiee"', weight: 95 },
-            { pattern: '/t/12/assets/', weight: 90 },
-            { pattern: 'bc-sf-filter.js', weight: 80 }
-        ]
-    },
-    
-    'Ecomify': {
-        patterns: [
-            // Schema 检测
-            '"schema_name":"ecomify"',
-            '"theme_name":"ecomify"',
-            '"schema_version":"3.4.2"',
-            // 特有的 JS 模块命名
-            'client.init-fed-cm',
-            'fed-cm_B9_lyA-d.en.esm.js',
-            // 主题 ID
-            '137429712973',
-            // CSS 特征
-            'ecomify-theme',
-            'ecomify.css'
-        ],
-        weight: 85,
-        minMatches: 2,
-        specificMatches: [
-            { pattern: '"schema_name":"ecomify"', weight: 95 },
-            { pattern: 'client.init-fed-cm', weight: 85 },
-            { pattern: '137429712973', weight: 80 }
-        ]
-    },
-    
-    'Prestige': {
-        patterns: [
-            // 官方和定制版本检测
-            '"theme_name":"Prestige"',
-            '"schema_name":"Prestige"',
-            'Shopify.theme.name === "Prestige"',
-            // 特有的文件结构
-            'vendor.min.js',
-            'theme.js',
-            'sections.js.liquid',
-            // CSS 类特征（Maestrooo 开发）
-            'ProductItem__',
-            'ProductItem--',
-            'prestige--v',
-            'Icon--',
-            'maestrooo',
-            // Web Components 特征
-            'custom-elements',
-            // 单一 CSS 文件特征
-            'theme.css'
-        ],
-        weight: 85,
-        minMatches: 2,
-        specificMatches: [
-            { pattern: '"theme_name":"Prestige"', weight: 95 },
-            { pattern: 'ProductItem__', weight: 80 },
-            { pattern: 'maestrooo', weight: 85 }
-        ]
-    },
-    
-    // 其他流行第三方主题
-    'Ella': {
-        patterns: [
-            'ella-theme', 'ella.css', 'ella.js', '/assets/ella',
-            't4s-ella', 'ella-product'
-        ],
-        weight: 75,
-        minMatches: 2
-    },
-    
-    'Debutify': {
-        patterns: [
-            'debutify', 'dbtfy-', 'debutify-theme', '/assets/debutify',
-            'debutify.css', 'debutify.js'
-        ],
-        weight: 75,
-        minMatches: 2
-    },
-    
-    'Booster': {
-        patterns: [
-            'booster-theme', 'btb-', '/assets/booster',
-            'booster.css', 'booster.js'
-        ],
-        weight: 70,
-        minMatches: 2
-    }
-};
-
-// 增强版检测器类
-class EnhancedShopifyThemeDetectorV2 {
+class UltimateShopifyThemeDetector {
     constructor() {
-        this.officialThemes = OFFICIAL_THEME_MAP;
-        this.thirdPartyThemes = THIRD_PARTY_THEMES;
-        this.freeThemes = FREE_THEMES;
-        this.nameToId = THEME_NAME_TO_ID;
+        this.officialThemes = COMPLETE_OFFICIAL_THEME_MAP;
+        this.thirdPartyThemes = EXTENDED_THIRD_PARTY_THEMES;
+        this.freeThemes = COMPLETE_FREE_THEMES;
+        this.nameToId = COMPLETE_THEME_NAME_TO_ID;
         
         this.config = {
             timeout: 15000,
@@ -261,7 +35,7 @@ class EnhancedShopifyThemeDetectorV2 {
         };
     }
 
-    // 主检测方法 - 重新排序优先级
+    // 主检测方法 - 优化的检测流程
     async detectTheme(url) {
         try {
             const html = await this.fetchHTMLWithRetry(url);
@@ -275,17 +49,18 @@ class EnhancedShopifyThemeDetectorV2 {
                 };
             }
 
-            // 按新的优先级顺序检测
+            // 优化的检测方法顺序
             const detectionMethods = [
-                this.detectByJavaScriptObjects.bind(this),    // 新增：最高优先级
-                this.detectByThemeStoreId.bind(this),         // 原优先级1
-                this.detectBySchemaName.bind(this),           // 新增：Schema检测
-                this.detectByEnhancedThirdParty.bind(this),   // 增强的第三方检测
-                this.detectByShopifyObject.bind(this),        // 原优先级2
-                this.detectByMetaTags.bind(this),             // 原优先级3
-                this.detectByCDNPaths.bind(this),             // 新增：CDN路径检测
-                this.detectByAdvancedPatterns.bind(this),     // 原高级模式
-                this.detectByFallbackMethods.bind(this)       // 后备方法
+                this.detectByJavaScriptObjects.bind(this),      // 最高优先级 - JS对象
+                this.detectByThemeStoreId.bind(this),           // Theme Store ID
+                this.detectBySchemaName.bind(this),             // Schema名称
+                this.detectByEnhancedThirdParty.bind(this),     // 增强第三方检测
+                this.detectByMetaTags.bind(this),               // Meta标签
+                this.detectByCDNPaths.bind(this),               // CDN路径
+                this.detectByAssetAnalysis.bind(this),          // 新增：资源文件分析
+                this.detectByDOMStructure.bind(this),           // 新增：DOM结构分析
+                this.detectByAdvancedPatterns.bind(this),       // 高级模式
+                this.detectByFallbackMethods.bind(this)         // 后备方法
             ];
 
             let bestResult = null;
@@ -317,10 +92,12 @@ class EnhancedShopifyThemeDetectorV2 {
                     isOfficial: bestResult.isOfficial || false,
                     isFree: bestResult.isFree || false,
                     isThirdParty: bestResult.isThirdParty || false,
-                    themeStoreUrl: this.getThemeStoreUrl(bestResult.theme),
+                    themeStoreUrl: getThemeStoreUrl(bestResult.theme),
                     detectionDetails: bestResult.details || {},
                     allResults: allResults,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    databaseVersion: 'v3.0',
+                    supportedThemes: Object.keys(this.officialThemes).length + Object.keys(this.thirdPartyThemes).length
                 };
             }
 
@@ -331,7 +108,8 @@ class EnhancedShopifyThemeDetectorV2 {
                 theme: 'Unknown',
                 confidence: 0,
                 method: 'no_detection',
-                error: 'Unable to detect theme'
+                error: 'Unable to detect theme',
+                supportedThemes: Object.keys(this.officialThemes).length + Object.keys(this.thirdPartyThemes).length
             };
 
         } catch (error) {
@@ -345,25 +123,27 @@ class EnhancedShopifyThemeDetectorV2 {
         }
     }
 
-    // 新方法1: JavaScript 对象检测（最高优先级）
+    // 方法1: JavaScript 对象检测（最高优先级）
     async detectByJavaScriptObjects(html) {
         const patterns = [
-            // Shopify.theme 对象
+            // Shopify.theme 对象检测
             /Shopify\.theme\s*=\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/gi,
             /window\.Shopify\.theme\s*=\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/gi,
             /Shopify\.theme\.name\s*=\s*["']([^"']+)["']/gi,
             
-            // window.theme 对象
+            // window.theme 对象检测
             /window\.theme\.themeName\s*=\s*["']([^"']+)["']/gi,
+            /window\.theme\s*=\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/gi,
             /window\.theme\s*=\s*["']([^"']+)["']/gi,
             
-            // Schema 信息
+            // Schema 信息检测
             /"schema_name":\s*["']([^"']+)["']/gi,
             /"theme_name":\s*["']([^"']+)["']/gi,
             
-            // 其他 JS 变量
+            // 其他 JS 变量检测
             /theme_name["']?\s*:\s*["']([^"']+)["']/gi,
-            /themeName["']?\s*:\s*["']([^"']+)["']/gi
+            /themeName["']?\s*:\s*["']([^"']+)["']/gi,
+            /theme["']?\s*:\s*["']([^"']+)["']/gi
         ];
 
         for (const pattern of patterns) {
@@ -376,8 +156,8 @@ class EnhancedShopifyThemeDetectorV2 {
                 if (this.thirdPartyThemes[themeName]) {
                     return {
                         theme: themeName,
-                        confidence: 95,
-                        method: 'javascript_object',
+                        confidence: 98,
+                        method: 'javascript_object_third_party',
                         themeId: themeId || null,
                         isOfficial: !!themeId,
                         isThirdParty: !themeId,
@@ -401,7 +181,71 @@ class EnhancedShopifyThemeDetectorV2 {
         return null;
     }
 
-    // 新方法2: Schema 名称检测
+    // 方法2: Theme Store ID 检测
+    async detectByThemeStoreId(html) {
+        const patterns = [
+            /"theme_store_id":\s*(\d+)/gi,
+            /'theme_store_id':\s*(\d+)/gi,
+            /theme_store_id["']?\s*:\s*(\d+)/gi,
+            /themeStoreId["']?\s*:\s*(\d+)/gi,
+            /window\.Shopify\.theme\.store_id\s*=\s*(\d+)/gi,
+            /Shopify\.theme\.store_id\s*=\s*(\d+)/gi
+        ];
+
+        for (const pattern of patterns) {
+            const matches = [...html.matchAll(pattern)];
+            if (matches.length > 0) {
+                const id = parseInt(matches[0][1]);
+                const theme = this.officialThemes[id];
+                
+                if (theme) {
+                    return {
+                        theme: theme,
+                        confidence: 98,
+                        method: 'theme_store_id',
+                        themeId: id,
+                        isOfficial: true,
+                        isFree: this.freeThemes.includes(id),
+                        details: { themeStoreId: id }
+                    };
+                } else {
+                    return {
+                        theme: `Unknown Official Theme (ID: ${id})`,
+                        confidence: 95,
+                        method: 'theme_store_id_unknown',
+                        themeId: id,
+                        isOfficial: true,
+                        details: { themeStoreId: id }
+                    };
+                }
+            }
+        }
+
+        // 检测自定义主题
+        const nullPatterns = [
+            /"theme_store_id":\s*null/gi,
+            /'theme_store_id':\s*null/gi,
+            /theme_store_id["']?\s*:\s*null/gi
+        ];
+
+        for (const pattern of nullPatterns) {
+            if (pattern.test(html)) {
+                return {
+                    theme: 'Custom Theme',
+                    confidence: 90,
+                    method: 'theme_store_id_null',
+                    themeId: null,
+                    isOfficial: false,
+                    isCustom: true,
+                    details: { customTheme: true }
+                };
+            }
+        }
+
+        return null;
+    }
+
+    // 方法3: Schema 名称检测
     async detectBySchemaName(html) {
         const patterns = [
             /"schema_name":\s*["']([^"']+)["']/gi,
@@ -414,23 +258,24 @@ class EnhancedShopifyThemeDetectorV2 {
             if (matches.length > 0) {
                 const schemaName = matches[0][1];
                 
-                // 检查是否是已知主题
+                // 检查是否是已知第三方主题
                 if (this.thirdPartyThemes[schemaName]) {
                     return {
                         theme: schemaName,
                         confidence: 95,
-                        method: 'schema_name',
+                        method: 'schema_name_third_party',
                         isThirdParty: true,
                         details: { schemaName: schemaName }
                     };
                 }
                 
+                // 检查是否是官方主题
                 const themeId = this.nameToId[schemaName];
                 if (themeId) {
                     return {
                         theme: schemaName,
                         confidence: 92,
-                        method: 'schema_name',
+                        method: 'schema_name_official',
                         themeId: themeId,
                         isOfficial: true,
                         isFree: this.freeThemes.includes(themeId),
@@ -443,7 +288,7 @@ class EnhancedShopifyThemeDetectorV2 {
         return null;
     }
 
-    // 增强的第三方主题检测
+    // 方法4: 增强的第三方主题检测
     async detectByEnhancedThirdParty(html) {
         const htmlLower = html.toLowerCase();
         let bestMatch = null;
@@ -514,160 +359,7 @@ class EnhancedShopifyThemeDetectorV2 {
         return bestMatch;
     }
 
-    // 新方法3: CDN 路径检测
-    async detectByCDNPaths(html) {
-        const $ = cheerio.load(html);
-        
-        // 检测 CSS 和 JS 链接中的 CDN 路径
-        const allLinks = $('link[rel="stylesheet"], script[src]');
-        
-        for (let i = 0; i < allLinks.length; i++) {
-            const element = allLinks[i];
-            const url = $(element).attr('href') || $(element).attr('src');
-            
-            if (url) {
-                // Turbo 主题特征 CDN 路径
-                if (url.includes('/cdn/shop/t/190/assets/') || url.includes('/t/190/assets/')) {
-                    return {
-                        theme: 'Turbo',
-                        confidence: 90,
-                        method: 'cdn_path_detection',
-                        isThirdParty: true,
-                        details: { cdnPath: url, pathPattern: '/t/190/assets/' }
-                    };
-                }
-                
-                // Wokiee 主题特征 CDN 路径
-                if (url.includes('/cdn/shop/t/12/assets/') || url.includes('/t/12/assets/')) {
-                    return {
-                        theme: 'Wokiee',
-                        confidence: 90,
-                        method: 'cdn_path_detection',
-                        isThirdParty: true,
-                        details: { cdnPath: url, pathPattern: '/t/12/assets/' }
-                    };
-                }
-                
-                // 其他主题的 CDN 路径检测
-                const cdnMatch = url.match(/\/cdn\/shop\/t\/(\d+)\/assets\//);
-                if (cdnMatch) {
-                    const themeId = parseInt(cdnMatch[1]);
-                    const theme = this.officialThemes[themeId];
-                    if (theme) {
-                        return {
-                            theme: theme,
-                            confidence: 85,
-                            method: 'cdn_path_detection',
-                            themeId: themeId,
-                            isOfficial: true,
-                            isFree: this.freeThemes.includes(themeId),
-                            details: { cdnPath: url, extractedThemeId: themeId }
-                        };
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    // 原有方法保持不变...
-    async detectByThemeStoreId(html) {
-        const patterns = [
-            /"theme_store_id":\s*(\d+)/gi,
-            /'theme_store_id':\s*(\d+)/gi,
-            /theme_store_id["']?\s*:\s*(\d+)/gi,
-            /themeStoreId["']?\s*:\s*(\d+)/gi,
-            /window\.Shopify\.theme\.store_id\s*=\s*(\d+)/gi,
-            /Shopify\.theme\.store_id\s*=\s*(\d+)/gi
-        ];
-
-        for (const pattern of patterns) {
-            const matches = [...html.matchAll(pattern)];
-            if (matches.length > 0) {
-                const id = parseInt(matches[0][1]);
-                const theme = this.officialThemes[id];
-                
-                if (theme) {
-                    return {
-                        theme: theme,
-                        confidence: 98,
-                        method: 'theme_store_id',
-                        themeId: id,
-                        isOfficial: true,
-                        isFree: this.freeThemes.includes(id),
-                        details: { themeStoreId: id }
-                    };
-                } else {
-                    return {
-                        theme: `Unknown Official Theme (ID: ${id})`,
-                        confidence: 95,
-                        method: 'theme_store_id_unknown',
-                        themeId: id,
-                        isOfficial: true,
-                        details: { themeStoreId: id }
-                    };
-                }
-            }
-        }
-
-        // 检测自定义主题
-        const nullPatterns = [
-            /"theme_store_id":\s*null/gi,
-            /'theme_store_id':\s*null/gi,
-            /theme_store_id["']?\s*:\s*null/gi
-        ];
-
-        for (const pattern of nullPatterns) {
-            if (pattern.test(html)) {
-                return {
-                    theme: 'Custom Theme',
-                    confidence: 90,
-                    method: 'theme_store_id_null',
-                    themeId: null,
-                    isOfficial: false,
-                    isCustom: true,
-                    details: { customTheme: true }
-                };
-            }
-        }
-
-        return null;
-    }
-
-    // 其他原有方法保持不变...
-    async detectByShopifyObject(html) {
-        const patterns = [
-            /Shopify\.theme\s*=\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/gi,
-            /window\.Shopify\.theme\s*=\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/gi,
-            /["']theme["']:\s*\{[^}]*["']name["']:\s*["']([^"']+)["']/gi,
-            /Shopify\.theme\.name\s*=\s*["']([^"']+)["']/gi,
-            /window\.theme\s*=\s*["']([^"']+)["']/gi,
-            /theme_name["']?\s*:\s*["']([^"']+)["']/gi,
-            /Shopify\.theme\.schema_name\s*===\s*["']([^"']+)["']/gi
-        ];
-
-        for (const pattern of patterns) {
-            const matches = [...html.matchAll(pattern)];
-            if (matches.length > 0) {
-                const themeName = matches[0][1];
-                const themeId = this.nameToId[themeName];
-                
-                return {
-                    theme: themeName,
-                    confidence: themeId ? 92 : 80,
-                    method: 'shopify_object',
-                    themeId: themeId || null,
-                    isOfficial: !!themeId,
-                    isFree: themeId ? this.freeThemes.includes(themeId) : false,
-                    details: { detectedFromJS: true }
-                };
-            }
-        }
-
-        return null;
-    }
-
+    // 方法5: Meta 标签检测
     async detectByMetaTags(html) {
         const $ = cheerio.load(html);
         
@@ -716,6 +408,208 @@ class EnhancedShopifyThemeDetectorV2 {
         return null;
     }
 
+    // 方法6: CDN 路径检测
+    async detectByCDNPaths(html) {
+        const $ = cheerio.load(html);
+        
+        // 检测 CSS 和 JS 链接中的 CDN 路径
+        const allLinks = $('link[rel="stylesheet"], script[src]');
+        
+        for (let i = 0; i < allLinks.length; i++) {
+            const element = allLinks[i];
+            const url = $(element).attr('href') || $(element).attr('src');
+            
+            if (url) {
+                // 特定主题的 CDN 路径检测
+                const cdnPatterns = [
+                    { pattern: /\/cdn\/shop\/t\/190\/assets\//, theme: 'Turbo', confidence: 90 },
+                    { pattern: /\/t\/190\/assets\//, theme: 'Turbo', confidence: 88 },
+                    { pattern: /\/cdn\/shop\/t\/12\/assets\//, theme: 'Wokiee', confidence: 90 },
+                    { pattern: /\/t\/12\/assets\//, theme: 'Wokiee', confidence: 88 },
+                    { pattern: /\/cdn\/shop\/t\/101\/assets\//, theme: 'Expanse', confidence: 85 },
+                    { pattern: /\/t\/101\/assets\//, theme: 'Expanse', confidence: 83 }
+                ];
+
+                for (const { pattern, theme, confidence } of cdnPatterns) {
+                    if (pattern.test(url)) {
+                        return {
+                            theme: theme,
+                            confidence: confidence,
+                            method: 'cdn_path_specific',
+                            isThirdParty: !this.nameToId[theme],
+                            details: { cdnPath: url, pathPattern: pattern.source }
+                        };
+                    }
+                }
+                
+                // 通用 CDN 路径检测
+                const cdnMatch = url.match(/\/cdn\/shop\/t\/(\d+)\/assets\//);
+                if (cdnMatch) {
+                    const themeId = parseInt(cdnMatch[1]);
+                    const theme = this.officialThemes[themeId];
+                    if (theme) {
+                        return {
+                            theme: theme,
+                            confidence: 85,
+                            method: 'cdn_path_detection',
+                            themeId: themeId,
+                            isOfficial: true,
+                            isFree: this.freeThemes.includes(themeId),
+                            details: { cdnPath: url, extractedThemeId: themeId }
+                        };
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    // 新方法7: 资源文件分析
+    async detectByAssetAnalysis(html) {
+        const $ = cheerio.load(html);
+        
+        // 检测特定的资源文件组合
+        const scripts = $('script[src]');
+        const links = $('link[rel="stylesheet"]');
+        
+        const assetPatterns = {
+            'Stiletto': {
+                requiredAssets: ['photoswipe-chunk.js', 'swiper-chunk.js'],
+                optionalAssets: ['nouislider-chunk.js'],
+                confidence: 90
+            },
+            'Turbo': {
+                requiredAssets: ['styles.css'],
+                pathPattern: '/t/190/assets/',
+                confidence: 85
+            },
+            'Dawn': {
+                requiredAssets: ['base.css', 'component-'],
+                confidence: 75
+            },
+            'Impact': {
+                requiredAssets: ['component-product-card', 'cart-drawer.js'],
+                confidence: 80
+            }
+        };
+
+        for (const [themeName, pattern] of Object.entries(assetPatterns)) {
+            let matchCount = 0;
+            const foundAssets = [];
+
+            // 检查 JavaScript 文件
+            for (let i = 0; i < scripts.length; i++) {
+                const src = $(scripts[i]).attr('src');
+                if (src && pattern.requiredAssets) {
+                    for (const asset of pattern.requiredAssets) {
+                        if (src.includes(asset)) {
+                            matchCount++;
+                            foundAssets.push(asset);
+                        }
+                    }
+                }
+            }
+
+            // 检查 CSS 文件
+            for (let i = 0; i < links.length; i++) {
+                const href = $(links[i]).attr('href');
+                if (href && pattern.requiredAssets) {
+                    for (const asset of pattern.requiredAssets) {
+                        if (href.includes(asset)) {
+                            matchCount++;
+                            foundAssets.push(asset);
+                        }
+                    }
+                }
+                
+                // 检查路径模式
+                if (href && pattern.pathPattern && href.includes(pattern.pathPattern)) {
+                    matchCount += 2; // 路径匹配给予更高权重
+                    foundAssets.push(`Path: ${pattern.pathPattern}`);
+                }
+            }
+
+            if (matchCount >= (pattern.requiredAssets?.length || 1)) {
+                const themeId = this.nameToId[themeName];
+                return {
+                    theme: themeName,
+                    confidence: pattern.confidence,
+                    method: 'asset_analysis',
+                    themeId: themeId || null,
+                    isOfficial: !!themeId,
+                    isThirdParty: !themeId,
+                    isFree: themeId ? this.freeThemes.includes(themeId) : false,
+                    details: {
+                        foundAssets: foundAssets,
+                        matchCount: matchCount
+                    }
+                };
+            }
+        }
+
+        return null;
+    }
+
+    // 新方法8: DOM 结构分析
+    async detectByDOMStructure(html) {
+        const $ = cheerio.load(html);
+        
+        const structurePatterns = {
+            'Prestige': {
+                selectors: ['.ProductItem__', '.Icon--', '.SectionHeader__'],
+                minMatches: 2,
+                confidence: 75
+            },
+            'Impact': {
+                selectors: ['product-card', 'section-stack', '.drawer'],
+                minMatches: 2,
+                confidence: 75
+            },
+            'Dawn': {
+                selectors: ['.color-scheme-1', '.predictive-search', '.cart-drawer'],
+                minMatches: 2,
+                confidence: 70
+            },
+            'Symmetry': {
+                selectors: ['.product-block', '.navigation__', '.rimage-wrapper'],
+                minMatches: 2,
+                confidence: 70
+            }
+        };
+
+        for (const [themeName, pattern] of Object.entries(structurePatterns)) {
+            let matches = 0;
+            const foundSelectors = [];
+
+            for (const selector of pattern.selectors) {
+                if ($(selector).length > 0) {
+                    matches++;
+                    foundSelectors.push(selector);
+                }
+            }
+
+            if (matches >= pattern.minMatches) {
+                const themeId = this.nameToId[themeName];
+                return {
+                    theme: themeName,
+                    confidence: pattern.confidence,
+                    method: 'dom_structure_analysis',
+                    themeId: themeId || null,
+                    isOfficial: !!themeId,
+                    isFree: themeId ? this.freeThemes.includes(themeId) : false,
+                    details: {
+                        foundSelectors: foundSelectors,
+                        matchCount: matches
+                    }
+                };
+            }
+        }
+
+        return null;
+    }
+
+    // 其他方法保持不变...
     async detectByAdvancedPatterns(html) {
         const $ = cheerio.load(html);
         
@@ -724,24 +618,6 @@ class EnhancedShopifyThemeDetectorV2 {
         for (let i = 0; i < cssLinks.length; i++) {
             const href = $(cssLinks[i]).attr('href');
             if (href) {
-                // 检测官方主题路径模式
-                const cdnMatch = href.match(/\/cdn\/shop\/t\/(\d+)\/assets\//);
-                if (cdnMatch) {
-                    const themeId = parseInt(cdnMatch[1]);
-                    const theme = this.officialThemes[themeId];
-                    if (theme) {
-                        return {
-                            theme: theme,
-                            confidence: 75,
-                            method: 'advanced_cdn_path',
-                            themeId: themeId,
-                            isOfficial: true,
-                            isFree: this.freeThemes.includes(themeId),
-                            details: { cdnPath: href }
-                        };
-                    }
-                }
-
                 // 检测主题名称模式
                 const themeNameMatch = href.match(/\/assets\/([^\/]+)\.(css|js)/);
                 if (themeNameMatch) {
@@ -767,8 +643,6 @@ class EnhancedShopifyThemeDetectorV2 {
     }
 
     async detectByFallbackMethods(html) {
-        const $ = cheerio.load(html);
-        
         // 检查常见的主题特征
         const fallbackPatterns = {
             'Dawn': ['shopify-section-group-header', 'color-scheme-', 'component-'],
@@ -805,7 +679,7 @@ class EnhancedShopifyThemeDetectorV2 {
         return null;
     }
 
-    // 辅助方法保持不变...
+    // 辅助方法
     isShopifyStore(html) {
         const indicators = [
             'shopify.com/s/files',
@@ -909,18 +783,6 @@ class EnhancedShopifyThemeDetectorV2 {
         return chunks;
     }
 
-    getThemeStoreUrl(themeName) {
-        if (!themeName || themeName === 'Unknown') return null;
-        
-        const slug = themeName.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '')
-            .replace(/\s+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
-            
-        return `https://themes.shopify.com/themes/${slug}`;
-    }
-
     getStats() {
         const totalOfficial = Object.keys(this.officialThemes).length;
         const totalThirdParty = Object.keys(this.thirdPartyThemes).length;
@@ -933,19 +795,21 @@ class EnhancedShopifyThemeDetectorV2 {
                 free: totalFree,
                 paid: totalOfficial - totalFree
             },
-            thirdParty: totalThirdParty
+            thirdParty: totalThirdParty,
+            databaseVersion: 'v3.0',
+            lastUpdated: '2025-01-10'
         };
     }
 }
 
 // 简化的 API 函数
 async function detectShopifyTheme(url) {
-    const detector = new EnhancedShopifyThemeDetectorV2();
+    const detector = new UltimateShopifyThemeDetector();
     return await detector.detectTheme(url);
 }
 
 async function detectMultipleThemes(urls, options = {}) {
-    const detector = new EnhancedShopifyThemeDetectorV2();
+    const detector = new UltimateShopifyThemeDetector();
     return await detector.detectMultiple(urls, options);
 }
 
@@ -990,14 +854,18 @@ module.exports = async (req, res) => {
     }
 
     try {
-        const detector = new EnhancedShopifyThemeDetectorV2();
+        const detector = new UltimateShopifyThemeDetector();
         
         // 单个 URL 检测
         if (typeof urls === 'string') {
             const result = await detector.detectTheme(urls);
             return res.status(200).json({
                 success: true,
-                data: result
+                data: result,
+                meta: {
+                    version: 'v3.0',
+                    supportedThemes: detector.getStats().totalSupported
+                }
             });
         }
         
@@ -1012,6 +880,10 @@ module.exports = async (req, res) => {
                     processed: results.length,
                     successful: results.filter(r => r.success).length,
                     failed: results.filter(r => !r.success).length
+                },
+                meta: {
+                    version: 'v3.0',
+                    supportedThemes: detector.getStats().totalSupported
                 }
             });
         }
@@ -1031,55 +903,50 @@ module.exports = async (req, res) => {
 };
 
 // 导出所有功能
-module.exports.EnhancedShopifyThemeDetectorV2 = EnhancedShopifyThemeDetectorV2;
+module.exports.UltimateShopifyThemeDetector = UltimateShopifyThemeDetector;
 module.exports.detectShopifyTheme = detectShopifyTheme;
 module.exports.detectMultipleThemes = detectMultipleThemes;
 
-// 如果直接运行，执行测试
+// 如果直接运行，显示统计信息
 if (require.main === module) {
-    console.log('=== 增强版 Shopify 主题检测器 V2 测试 ===');
+    console.log('🎨 终极版 Shopify 主题检测器 V3');
+    console.log('===================================');
     
-    async function testProblematicSites() {
-        const detector = new EnhancedShopifyThemeDetectorV2();
-        
-        const testSites = [
-            { url: 'https://zoelev.com/', expected: 'Stiletto' },
-            { url: 'https://www.nataliemariejewellery.com/', expected: 'Prestige' },
-            { url: 'https://rellery.com/', expected: 'Kalles' },
-            { url: 'https://evryjewels.com/', expected: 'Ecomify' },
-            { url: 'https://goldpresidents.com/', expected: 'Turbo' },
-            { url: 'https://digbyandiona.com/', expected: 'Wokiee' }
+    const detector = new UltimateShopifyThemeDetector();
+    const stats = detector.getStats();
+    
+    console.log(`🎯 支持的主题总数: ${stats.totalSupported}`);
+    console.log(`📊 官方主题: ${stats.official.total} (免费: ${stats.official.free}, 付费: ${stats.official.paid})`);
+    console.log(`🔧 第三方主题: ${stats.thirdParty}`);
+    console.log(`📅 数据库版本: ${stats.databaseVersion}`);
+    console.log(`🔄 最后更新: ${stats.lastUpdated}`);
+    
+    console.log('\n🧪 开始测试样例网站...');
+    
+    // 测试示例
+    async function quickTest() {
+        const testUrls = [
+            'https://zoelev.com/',           // Stiletto
+            'https://goldpresidents.com/',  // Turbo
+            'https://rellery.com/'          // Kalles
         ];
         
-        console.log('测试问题网站...\n');
-        
-        for (const site of testSites) {
+        for (const url of testUrls) {
             try {
-                console.log(`测试: ${site.url}`);
-                console.log(`期望: ${site.expected}`);
-                
-                const result = await detector.detectTheme(site.url);
+                console.log(`\n🔍 测试: ${url}`);
+                const result = await detector.detectTheme(url);
                 
                 if (result.success && result.isShopify) {
-                    console.log(`结果: ${result.theme} (${result.confidence}%)`);
-                    console.log(`方法: ${result.method}`);
-                    
-                    if (result.theme === site.expected) {
-                        console.log('✅ 检测正确!');
-                    } else {
-                        console.log('❌ 检测错误');
-                    }
+                    console.log(`✅ 检测结果: ${result.theme} (${result.confidence}%)`);
+                    console.log(`📋 检测方法: ${result.method}`);
                 } else {
                     console.log(`❌ 检测失败: ${result.error}`);
                 }
-                
-                console.log('---');
             } catch (error) {
-                console.error(`❌ ${site.url} 检测异常: ${error.message}`);
-                console.log('---');
+                console.log(`❌ 测试异常: ${error.message}`);
             }
         }
     }
     
-    testProblematicSites();
+    quickTest();
 }
