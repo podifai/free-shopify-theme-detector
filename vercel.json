@@ -4,17 +4,26 @@
     "api/detect.js": {
       "maxDuration": 30,
       "memory": 1024
+    },
+    "enhanced-shopify-theme-detector.js": {
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
   "routes": [
     {
       "src": "/api/detect",
-      "dest": "/api/detect.js",
+      "dest": "/enhanced-shopify-theme-detector.js",
       "methods": ["GET", "POST", "OPTIONS"]
     },
     {
       "src": "/detect",
-      "dest": "/api/detect.js",
+      "dest": "/enhanced-shopify-theme-detector.js",
+      "methods": ["GET", "POST", "OPTIONS"]
+    },
+    {
+      "src": "/api/enhanced",
+      "dest": "/enhanced-shopify-theme-detector.js",
       "methods": ["GET", "POST", "OPTIONS"]
     }
   ],
