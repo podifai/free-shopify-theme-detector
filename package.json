@@ -1,36 +1,38 @@
 {
-  "name": "shopify-theme-detector",
-  "version": "2.0.0",
-  "description": "A powerful tool to detect Shopify themes from website URLs. Perfect for DTC sellers, agencies, and developers who want to identify what theme a Shopify store is using.",
-  "main": "src/shopify-theme-detector-v2.js",
-  "scripts": {
-    "test": "node tests/test-v2.js",
-    "test:jewelry": "node tests/test-jewelry-sites.js",
-    "test:batch": "node tests/test-new-batch.js",
-    "example": "node examples/example.js",
-    "demo": "open examples/batch-widget.html",
-    "server": "node server-en.js",
-    "test:custom": "node test-custom-en.js",
-    "quick-test": "node quick-test-en.js"
-  },
-  "keywords": [
-    "shopify",
-    "theme",
-    "detector",
-    "ecommerce",
-    "dtc",
-    "analysis",
-    "web-scraping"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
-  "dependencies": {
-    "axios": "^1.6.0",
-    "cheerio": "^1.0.0-rc.12",
-    "cors": "^2.8.5",
-    "express": "^5.1.0"
-  },
-  "engines": {
-    "node": ">=14.0.0"
+    "name": "shopify-theme-detector",
+    "version": "2.0.0",
+    "description": "A powerful tool to detect Shopify themes from website 
+  URLs. Perfect for DTC sellers, agencies, and developers who want to 
+  identify what theme a Shopify store is using.",
+    "main": "api/detect.js",
+    "scripts": {
+      "test": "node tests/test-v2.js",
+      "test:jewelry": "node tests/test-jewelry-sites.js",
+      "test:batch": "node tests/test-new-batch.js",
+      "example": "node examples/example.js",
+      "demo": "open examples/batch-widget.html",
+      "server": "node server-en.js",
+      "test:custom": "node test-custom-en.js",
+      "quick-test": "node quick-test-en.js"
+    },
+    "keywords": [
+      "shopify",
+      "theme",
+      "detector",
+      "ecommerce",
+      "dtc",
+      "analysis",
+      "web-scraping"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "dependencies": {
+      "axios": "^1.6.0",
+      "cheerio": "^1.0.0-rc.12",
+      "cors": "^2.8.5",
+      "express": "^5.1.0"
+    },
+    "engines": {
+      "node": ">=14.0.0"
+    }
   }
-}
